@@ -23,7 +23,11 @@ torch.backends.cudnn.benchmark = False
 np.random.seed(args.seed)
 
 # tokenizer
-tokenizer = MODELS[args.pretrained_model][1].from_pretrained(args.pretrained_model)
+if 'bertinho' in args.pretrained_model:
+    tokenizer = MODELS[args.pretrained_model][1].from_pretrained('../models/bertinho/')
+else:
+    tokenizer = MODELS[args.pretrained_model][1].from_pretrained(args.pretrained_model)
+
 augmentation.tokenizer = tokenizer
 augmentation.sub_style = args.sub_style
 augmentation.alpha_sub = args.alpha_sub
@@ -44,18 +48,14 @@ if args.language == 'english':
     test_set_asr = Dataset(os.path.join(args.data_path, 'en/test2011asr'), tokenizer=tokenizer, sequence_len=sequence_len,
                            token_style=token_style, is_train=False)
     test_set = [val_set, test_set_ref, test_set_asr]
-elif args.language == 'bangla':
-    train_set = Dataset(os.path.join(args.data_path, 'bn/train'), tokenizer=tokenizer, sequence_len=sequence_len,
+elif args.language == 'galician':
+    train_set = Dataset(os.path.join(args.data_path, 'gl/train'), tokenizer=tokenizer, sequence_len=sequence_len,
                         token_style=token_style, is_train=True, augment_rate=ar, augment_type=aug_type)
-    val_set = Dataset(os.path.join(args.data_path, 'bn/dev'), tokenizer=tokenizer, sequence_len=sequence_len,
+    val_set = Dataset(os.path.join(args.data_path, 'gl/dev'), tokenizer=tokenizer, sequence_len=sequence_len,
                       token_style=token_style, is_train=False)
-    test_set_news = Dataset(os.path.join(args.data_path, 'bn/test_news'), tokenizer=tokenizer, sequence_len=sequence_len,
-                            token_style=token_style, is_train=False)
-    test_set_ref = Dataset(os.path.join(args.data_path, 'bn/test_ref'), tokenizer=tokenizer, sequence_len=sequence_len,
-                           token_style=token_style, is_train=False)
-    test_set_asr = Dataset(os.path.join(args.data_path, 'bn/test_asr'), tokenizer=tokenizer, sequence_len=sequence_len,
-                           token_style=token_style, is_train=False)
-    test_set = [val_set, test_set_news, test_set_ref, test_set_asr]
+    test_set = Dataset(os.path.join(args.data_path, 'gl/test'), tokenizer=tokenizer, sequence_len=sequence_len,
+                       token_style=token_style, is_train=False)
+    test_set = [val_set, test_set]
 elif args.language == 'english-bangla':
     train_set = Dataset([os.path.join(args.data_path, 'en/train2012'), os.path.join(args.data_path, 'bn/train_bn')],
                         tokenizer=tokenizer, sequence_len=sequence_len, token_style=token_style, is_train=True,
@@ -94,6 +94,7 @@ log_path = os.path.join(args.save_path, args.name + '_logs.txt')
 
 # Model
 device = torch.device('cuda' if (args.cuda and torch.cuda.is_available()) else 'cpu')
+device = 'cpu'
 if args.use_crf:
     deep_punctuation = DeepPunctuationCRF(args.pretrained_model, freeze_bert=args.freeze_bert, lstm_dim=args.lstm_dim)
 else:

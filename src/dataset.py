@@ -1,7 +1,51 @@
 import torch
+import numpy as np
+import regex as re
 from config import *
 from augmentation import *
-import numpy as np
+
+
+def transform_data(file_path):
+    data_output = []
+    with open(file_path, 'r', encoding='utf-8') as f:
+        data_raw = f.readlines()
+    for line in data_raw:
+        line = line[:-1]
+        line = line.split(" ")
+        for word in line:
+            if word == word.lower():
+                if word.isalnum():
+                    label = "\t" + "0"
+                elif word[-1] == ",":
+                    label = "\t" + "COMMA"
+                elif word[-1] == ".":
+                    label = "\t" + "PERIOD"
+                elif word[-1] == "?":
+                    label = "\t" + "QUESTION"
+            elif word == word.upper():
+                if word.isalnum():
+                    label = "\t" + "ALL_CAPITAL"
+                elif word[-1] == ",":
+                    label = "\t" + "ALL_CAPITAL+COMMA"
+                elif word[-1] == ".":
+                    label = "\t" + "ALL_CAPITAL+PERIOD"
+                elif word[-1] == "?":
+                    label = "\t" + "ALL_CAPITAL+QUESTION"
+            elif word[0] == word[0].upper():
+                if word.isalnum():
+                    label = "\t" + 'FRITS_CAPITAL'
+                elif word[-1] == ",":
+                    label = "\t" + "FRITS_CAPITAL+COMMA"
+                elif word[-1] == ".":
+                    label = "\t" + "FRITS_CAPITAL+PERIOD"
+                elif word[-1] == "?":
+                    label = "\t" + "FRITS_CAPITAL+QUESTION"
+            word = re.sub(r"[.,]", "", word).lower()
+            data_output.append(word + label)
+
+    with open(file_path + "_GL.txt", 'w', encoding="utf-8") as f:
+        f.write("\n".join(data_output))
+    return data_output
 
 
 def parse_data(file_path, tokenizer, sequence_len, token_style):

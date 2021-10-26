@@ -29,7 +29,9 @@ TOKEN_IDX = {
 }
 
 # 'O' -> No punctuation
-punctuation_dict = {'O': 0, 'COMMA': 1, 'PERIOD': 2, 'QUESTION': 3}
+punctuation_dict = {'O': 0, 'COMMA': 1, 'PERIOD': 2, 'QUESTION': 3, 'ALL_CAPITAL': 4, 'FRITS_CAPITAL': 5,
+                    'ALL_CAPITAL+COMMA': 6, 'ALL_CAPITAL+PERIOD': 7, 'ALL_CAPITAL+QUESTION': 8,
+                    'FRITS_CAPITAL+COMMA': 9, 'FRITS_CAPITAL+PERIOD': 10, 'FRITS_CAPITAL+QUESTION': 11}
 
 
 # pretrained model name: (model class, model tokenizer, output dimension, token style)
@@ -49,4 +51,6 @@ MODELS = {
     'albert-base-v1': (AlbertModel, AlbertTokenizer, 768, 'albert'),
     'albert-base-v2': (AlbertModel, AlbertTokenizer, 768, 'albert'),
     'albert-large-v2': (AlbertModel, AlbertTokenizer, 1024, 'albert'),
+    'bertinho-gl-base-cased': (BertForMaskedLM.from_pretrained('../models/bertinho/'),
+                               AutoTokenizer.from_pretrained('../models/bertinho/'), 30000, 'bert')
 }
