@@ -1,18 +1,15 @@
 import torch
-import numpy as np
 import regex as re
 from config import *
 from augmentation import *
+from multiprocessing import Pool, cpu_count
 
 
-def transform_data(file_path):
-    data_output = []
-    with open(file_path, 'r', encoding='utf-8') as f:
-        data_raw = f.readlines()
-    for line in data_raw:
-        line = line[:-1]
-        line = line.split(" ")
-        for word in line:
+def seq_transformation(raw_data):
+    data_output = ''
+    if len(raw_data) > 2:
+        for word in raw_data.split(" "):
+            label = ''
             if word == word.lower():
                 if word.isalnum():
                     label = "\t" + "0"
@@ -40,12 +37,27 @@ def transform_data(file_path):
                     label = "\t" + "FRITS_CAPITAL+PERIOD"
                 elif word[-1] == "?":
                     label = "\t" + "FRITS_CAPITAL+QUESTION"
-            word = re.sub(r"[.,]", "", word).lower()
-            data_output.append(word + label)
+            if label:
+                word = re.sub(r"[.,]", "", word).lower()
+                data_output += word + label + '\n'
+    return data_output
+
+
+def transform_data(file_path):
+
+    with open(file_path, 'r', encoding='utf-8') as f:
+        data_raw = f.read()
+    data_raw = re.sub(r" \.", ".", data_raw)
+    data_raw = re.sub(r" ,", ",", data_raw)
+    data_raw = data_raw.split("\n")
+    pool = Pool(processes=cpu_count())
+    data_raw = pool.map(seq_transformation, data_raw)
+    pool.close()
+    pool.join()
 
     with open(file_path + "_GL.txt", 'w', encoding="utf-8") as f:
-        f.write("\n".join(data_output))
-    return data_output
+        f.write("".join(data_raw))
+    return data_raw
 
 
 def parse_data(file_path, tokenizer, sequence_len, token_style):
