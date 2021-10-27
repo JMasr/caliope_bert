@@ -7,6 +7,8 @@ def parse_arguments():
     parser.add_argument('--cuda', default=True, type=lambda x: (str(x).lower() == 'true'), help='use cuda if available')
     parser.add_argument('--seed', default=1, type=int, help='random seed')
     parser.add_argument('--pretrained-model', default='bertinho-gl-base-cased', type=str, help='pretrained language model')
+    # parser.add_argument('--pretrained-model', default='bert-base-uncased', type=str,
+    #                     help='pretrained language model')
     parser.add_argument('--freeze-bert', default=False, type=lambda x: (str(x).lower() == 'true'),
                         help='Freeze BERT layers or not')
     parser.add_argument('--lstm-dim', default=-1, type=int,
@@ -16,7 +18,7 @@ def parse_arguments():
     parser.add_argument('--data-path', default='../data/', type=str, help='path to train/dev/test datasets')
     parser.add_argument('--language', default='galician', type=str,
                         help='language, available options are english, bangla, english-bangla (for training with both)')
-    parser.add_argument('--sequence-length', default=374, type=int,
+    parser.add_argument('--sequence-length', default=96, type=int,
                         help='sequence length to use when preparing dataset (default 256)')
     parser.add_argument('--augment-rate', default=0., type=float, help='token augmentation probability')
     parser.add_argument('--augment-type', default='all', type=str, help='which augmentation to use')
