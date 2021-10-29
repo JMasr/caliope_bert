@@ -77,6 +77,7 @@ else:
     raise ValueError('Incorrect language argument for Dataset')
 
 # Data Loaders
+print("Loading the Database")
 data_loader_params = {
     'batch_size': args.batch_size,
     'shuffle': True,
@@ -93,6 +94,7 @@ log_path = os.path.join(args.save_path, args.name + '_logs.txt')
 
 
 # Model
+print("Loading BERT model")
 device = torch.device('cuda' if (args.cuda and torch.cuda.is_available()) else 'cpu')
 if args.use_crf:
     deep_punctuation = DeepPunctuationCRF(args.pretrained_model, freeze_bert=args.freeze_bert, lstm_dim=args.lstm_dim)
@@ -139,13 +141,14 @@ def test(data_loader):
     """
     :return: precision[numpy array], recall[numpy array], f1 score [numpy array], accuracy, confusion matrix
     """
+    print("Strating Train Phase")
     num_iteration = 0
     deep_punctuation.eval()
     # +1 for overall result
-    tp = np.zeros(1+len(punctuation_dict), dtype=np.int)
-    fp = np.zeros(1+len(punctuation_dict), dtype=np.int)
-    fn = np.zeros(1+len(punctuation_dict), dtype=np.int)
-    cm = np.zeros((len(punctuation_dict), len(punctuation_dict)), dtype=np.int)
+    tp = np.zeros(1+len(punctuation_dict), dtype=int)
+    fp = np.zeros(1+len(punctuation_dict), dtype=int)
+    fn = np.zeros(1+len(punctuation_dict), dtype=int)
+    cm = np.zeros((len(punctuation_dict), len(punctuation_dict)), dtype=int)
     correct = 0
     total = 0
     with torch.no_grad():
