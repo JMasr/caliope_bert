@@ -12,7 +12,7 @@ def seq_transformation(raw_data):
             label = ''
             if word == word.lower():
                 if word.isalnum():
-                    label = "\t" + "0"
+                    label = "\t" + "O"
                 elif word[-1] == ",":
                     label = "\t" + "COMMA"
                 elif word[-1] == ".":
