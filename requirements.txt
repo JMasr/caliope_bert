@@ -1,5 +1,5 @@
 pytorch-crf
 tqdm~=4.50.2
-numpy~=1.19.2
+numpy~=1.20.3
 regex~=2020.10.15
 transformers==v2.11.0
