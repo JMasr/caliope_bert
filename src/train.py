@@ -50,6 +50,7 @@ if args.language == 'english':
 elif args.language == 'galician':
     check_for_data_base('gl')
     data_path = os.path.join(args.data_path, 'gl/train')
+    print("Loading data ...")
     train_set = Dataset(data_path, tokenizer=tokenizer, sequence_len=sequence_len,
                         token_style=token_style, is_train=True, augment_rate=ar, augment_type=aug_type)
     data_path = data_path.replace('gl/train', 'gl/dev')
@@ -196,6 +197,7 @@ def test(data_loader):
 
 
 def train():
+    print("Star Training ...")
     with open(log_path, 'a') as f:
         f.write(str(args)+'\n')
     best_val_acc = 0
