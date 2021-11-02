@@ -1,4 +1,3 @@
-import os
 import torch
 import torch.nn as nn
 import numpy as np
@@ -49,11 +48,14 @@ if args.language == 'english':
                            token_style=token_style, is_train=False)
     test_set = [val_set, test_set_ref, test_set_asr]
 elif args.language == 'galician':
-    train_set = Dataset(os.path.join(args.data_path, 'gl/train'), tokenizer=tokenizer, sequence_len=sequence_len,
+    data_path = os.path.join(args.data_path, 'gl/train')
+    train_set = Dataset(data_path, tokenizer=tokenizer, sequence_len=sequence_len,
                         token_style=token_style, is_train=True, augment_rate=ar, augment_type=aug_type)
-    val_set = Dataset(os.path.join(args.data_path, 'gl/dev'), tokenizer=tokenizer, sequence_len=sequence_len,
+    data_path = data_path.replace('gl/train', 'gl/dev')
+    val_set = Dataset(data_path, tokenizer=tokenizer, sequence_len=sequence_len,
                       token_style=token_style, is_train=False)
-    test_set = Dataset(os.path.join(args.data_path, 'gl/test'), tokenizer=tokenizer, sequence_len=sequence_len,
+    data_path = data_path.replace('gl/dev', 'gl/test')
+    test_set = Dataset(data_path, tokenizer=tokenizer, sequence_len=sequence_len,
                        token_style=token_style, is_train=False)
     test_set = [val_set, test_set]
 elif args.language == 'english-bangla':

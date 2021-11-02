@@ -1,4 +1,66 @@
+import os
+import pickle
+import requests
 from transformers import *
+
+
+def check_for_data_base(language=''):
+
+    def download_file_from_google_drive(id_token, dest):
+        """
+        Download a file from Google Drive using its unique token `id` and write down in disk `destination`.
+        :param id_token: Token of the Google Drive file.
+        :type id_token: str
+        :param dest: path were the Google Drive file will be saved.
+        :type dest: str
+        :return: -
+        """
+
+        def get_confirm_token(response):
+            for key, value in response.cookies.items():
+                if key.startswith('download_warning'):
+                    return value
+
+            return None
+
+        def save_response_content(response, path_to_save):
+            chunk_size = 32768
+            with open(path_to_save, "wb") as f:
+                for chunk in response.iter_content(chunk_size):
+                    if chunk:  # filter out keep-alive new chunks
+                        f.write(chunk)
+
+        url = "https://docs.google.com/uc?export=download"
+        session = requests.Session()
+
+        resp = session.get(url, params={'id': id_token}, stream=True)
+        token = get_confirm_token(resp)
+
+        if token:
+            params = {'id': id_token, 'confirm': token}
+            resp = session.get(url, params=params, stream=True)
+
+        save_response_content(resp, dest)
+
+    destination = '../data/' + language + 'train'
+    if os.path.exists(destination) is False:
+        if language == 'gal':
+            file_id = '1z7uA6wwRn0IWCbwcm0gTRi_Rsb6OWndx'
+        download_file_from_google_drive(file_id, destination)
+
+    destination = destination.replace('train', 'dev')
+    if os.path.exists(destination) is False:
+        if language == 'gal':
+            file_id = '1AhgwKEk03-9H7cDrbleljRvvEMUCLK2u'
+        download_file_from_google_drive(file_id, destination)
+
+    destination = destination.replace('train', 'test')
+    if os.path.exists(destination) is False:
+        if language == 'gal':
+            file_id = '1W92EQGPk1XKhIRq15fVj_v6NEKGrnLId'
+        download_file_from_google_drive(file_id, destination)
+
+
 
 # special tokens indices in different models available in transformers
 TOKEN_IDX = {
