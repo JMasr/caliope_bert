@@ -48,6 +48,7 @@ if args.language == 'english':
                            token_style=token_style, is_train=False)
     test_set = [val_set, test_set_ref, test_set_asr]
 elif args.language == 'galician':
+    check_for_data_base('gl')
     data_path = os.path.join(args.data_path, 'gl/train')
     train_set = Dataset(data_path, tokenizer=tokenizer, sequence_len=sequence_len,
                         token_style=token_style, is_train=True, augment_rate=ar, augment_type=aug_type)
