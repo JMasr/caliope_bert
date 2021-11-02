@@ -42,7 +42,7 @@ def check_for_data_base(language=''):
         save_response_content(resp, dest)
 
     file_id = ''
-    destination = '../data/' + language + 'train'
+    destination = '../data/' + language + '/train'
     if os.path.exists(destination) is False:
         if language == 'gl':
             file_id = '1z7uA6wwRn0IWCbwcm0gTRi_Rsb6OWndx'
@@ -56,7 +56,7 @@ def check_for_data_base(language=''):
         print("Download DEV-SET")
         download_file_from_google_drive(file_id, destination)
 
-    destination = destination.replace('train', 'test')
+    destination = destination.replace('dev', 'test')
     if os.path.exists(destination) is False:
         if language == 'gl':
             file_id = '1W92EQGPk1XKhIRq15fVj_v6NEKGrnLId'
