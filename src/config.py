@@ -41,23 +41,24 @@ def check_for_data_base(language=''):
 
         save_response_content(resp, dest)
 
+    file_id = ''
     destination = '../data/' + language + 'train'
     if os.path.exists(destination) is False:
-        if language == 'gal':
+        if language == 'gl':
             file_id = '1z7uA6wwRn0IWCbwcm0gTRi_Rsb6OWndx'
         print("Download TRAIN-SET")
         download_file_from_google_drive(file_id, destination)
 
     destination = destination.replace('train', 'dev')
     if os.path.exists(destination) is False:
-        if language == 'gal':
+        if language == 'gl':
             file_id = '1AhgwKEk03-9H7cDrbleljRvvEMUCLK2u'
         print("Download DEV-SET")
         download_file_from_google_drive(file_id, destination)
 
     destination = destination.replace('train', 'test')
     if os.path.exists(destination) is False:
-        if language == 'gal':
+        if language == 'gl':
             file_id = '1W92EQGPk1XKhIRq15fVj_v6NEKGrnLId'
         print("Download TEST-SET")
         download_file_from_google_drive(file_id, destination)
