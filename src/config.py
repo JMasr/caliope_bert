@@ -45,7 +45,7 @@ def check_for_data_base(language=''):
     destination = '../data/' + language + '/train'
     if os.path.exists(destination) is False:
         if language == 'gl':
-            file_id = '1jfJwKpHT_h5sWBjrJuWJgVf_2er9Nf_8'
+            file_id = '11_gOr8Z8n-uUoA78soLLpa1X0qM1bh6W'
         print("Download TRAIN-SET")
         download_file_from_google_drive(file_id, destination)
 

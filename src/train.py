@@ -53,12 +53,15 @@ elif args.language == 'galician':
     print("Loading data ...")
     train_set = Dataset(data_path, tokenizer=tokenizer, sequence_len=sequence_len,
                         token_style=token_style, is_train=True, augment_rate=ar, augment_type=aug_type)
+    print("train-set loaded")
     data_path = data_path.replace('gl/train', 'gl/dev')
     val_set = Dataset(data_path, tokenizer=tokenizer, sequence_len=sequence_len,
                       token_style=token_style, is_train=False)
+    print("validation-set loaded")
     data_path = data_path.replace('gl/dev', 'gl/test')
     test_set = Dataset(data_path, tokenizer=tokenizer, sequence_len=sequence_len,
                        token_style=token_style, is_train=False)
+    print("test-set loaded")
     test_set = [val_set, test_set]
 elif args.language == 'english-bangla':
     train_set = Dataset([os.path.join(args.data_path, 'en/train2012'), os.path.join(args.data_path, 'bn/train_bn')],
