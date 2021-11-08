@@ -72,9 +72,9 @@ def parse_data(file_path, tokenizer, sequence_len, token_style, line=None):
     """
     data_items = []
     with open(file_path, 'r', encoding='utf-8') as f:
-        lines = f.readlines()
-        idx = 0
+        lines = [i.strip() for i in f.readlines() if len(i.split("\t")) == 2]
         # loop until end of the entire text
+        idx = 0
         while idx < len(lines):
             x = [TOKEN_IDX[token_style]['START_SEQ']]
             y = [0]
@@ -84,13 +84,7 @@ def parse_data(file_path, tokenizer, sequence_len, token_style, line=None):
             # -1 because we will have a special end of sequence token at the end
             while len(x) < sequence_len - 1 and idx < len(lines):
 
-                try:
-                    word, punc = lines[idx].strip().split('\t')
-                except:
-                    print(lines[idx])
-                else:
-                    word, punc = lines[idx].strip().split('\t')
-
+                word, punc = lines[idx].split('\t')
                 tokens = tokenizer.tokenize(word)
                 # if taking these tokens exceeds sequence length we finish current sequence with padding
                 # then start next sequence from this token
