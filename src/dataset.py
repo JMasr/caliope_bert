@@ -60,7 +60,7 @@ def transform_data(file_path):
     return data_raw
 
 
-def parse_data(file_path, tokenizer, sequence_len, token_style):
+def parse_data(file_path, tokenizer, sequence_len, token_style, line=None):
     """
 
     :param file_path: text file path that contains tokens and punctuations separated by tab in lines
@@ -72,7 +72,7 @@ def parse_data(file_path, tokenizer, sequence_len, token_style):
     """
     data_items = []
     with open(file_path, 'r', encoding='utf-8') as f:
-        lines = [line for line in f.read().split('\n') if line.strip()]
+        lines = f.readlines()
         idx = 0
         # loop until end of the entire text
         while idx < len(lines):
@@ -83,7 +83,7 @@ def parse_data(file_path, tokenizer, sequence_len, token_style):
             # loop until we have required sequence length
             # -1 because we will have a special end of sequence token at the end
             while len(x) < sequence_len - 1 and idx < len(lines):
-                word, punc = lines[idx].split('\t')
+                word, punc = lines[idx].strip().split('\t')
                 tokens = tokenizer.tokenize(word)
                 # if taking these tokens exceeds sequence length we finish current sequence with padding
                 # then start next sequence from this token
@@ -110,6 +110,7 @@ def parse_data(file_path, tokenizer, sequence_len, token_style):
                 y_mask = y_mask + [0 for _ in range(sequence_len - len(y_mask))]
             attn_mask = [1 if token != TOKEN_IDX[token_style]['PAD'] else 0 for token in x]
             data_items.append([x, y, attn_mask, y_mask])
+
     return data_items
 
 
