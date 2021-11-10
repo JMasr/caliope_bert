@@ -37,7 +37,8 @@ def seq_transformation(raw_data):
                     label = "\t" + "FRITS_CAPITAL+PERIOD"
                 elif word[-1] == "?":
                     label = "\t" + "FRITS_CAPITAL+QUESTION"
-            if label:
+            word = re.sub(r"[.,]", "", word).lower()
+            if label and word:
                 word = re.sub(r"[.,]", "", word).lower()
                 data_output += word + label + '\n'
     return data_output
@@ -71,8 +72,10 @@ def parse_data(file_path, tokenizer, sequence_len, token_style, line=None):
     punctuation_mask is used to ignore special indices like padding and intermediate sub-word token during evaluation
     """
     data_items = []
+    dict_weigth = {}.fromkeys(punctuation_dict.keys(), 0)
+
     with open(file_path, 'r', encoding='utf-8') as f:
-        lines = [i.strip() for i in f.readlines() if len(i.split("\t")) == 2]
+        lines = f.readlines()
         # loop until end of the entire text
         idx = 0
         while idx < len(lines):
@@ -84,7 +87,9 @@ def parse_data(file_path, tokenizer, sequence_len, token_style, line=None):
             # -1 because we will have a special end of sequence token at the end
             while len(x) < sequence_len - 1 and idx < len(lines):
 
-                word, punc = lines[idx].split('\t')
+                word, punc = lines[idx].strip().split('\t')
+                if punc in dict_weigth:
+                    dict_weigth[punc] += 1
                 tokens = tokenizer.tokenize(word)
                 # if taking these tokens exceeds sequence length we finish current sequence with padding
                 # then start next sequence from this token
@@ -112,7 +117,11 @@ def parse_data(file_path, tokenizer, sequence_len, token_style, line=None):
             attn_mask = [1 if token != TOKEN_IDX[token_style]['PAD'] else 0 for token in x]
             data_items.append([x, y, attn_mask, y_mask])
 
-    return data_items
+    freq = list(set(sorted(dict_weigth.values())))
+    freq = freq[0] if freq[0] != 0 else freq[1]
+    weigths = [freq/i if i != 0 else 0 for i in dict_weigth.values()]
+
+    return data_items, weigths
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -120,19 +129,14 @@ class Dataset(torch.utils.data.Dataset):
                  augment_type='substitute'):
         """
 
-        :param files: single file or list of text files containing tokens and punctuations separated by tab in lines
+        :param files: single file containing tokens and punctuations separated by tab in lines
         :param tokenizer: tokenizer that will be used to further tokenize word for BERT like models
         :param sequence_len: length of each sequence
         :param token_style: For getting index of special tokens in config.TOKEN_IDX
         :param augment_rate: token augmentation rate when preparing data
         :param is_train: if false do not apply augmentation
         """
-        if isinstance(files, list):
-            self.data = []
-            for file in files:
-                self.data += parse_data(file, tokenizer, sequence_len, token_style)
-        else:
-            self.data = parse_data(files, tokenizer, sequence_len, token_style)
+        self.data, self.tensor_weigth = parse_data(files, tokenizer, sequence_len, token_style)
         self.sequence_len = sequence_len
         self.augment_rate = augment_rate
         self.token_style = token_style
