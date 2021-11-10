@@ -108,7 +108,7 @@ if args.use_crf:
 else:
     deep_punctuation = DeepPunctuation(args.pretrained_model, freeze_bert=args.freeze_bert, lstm_dim=args.lstm_dim)
 deep_punctuation.to(device)
-criterion = nn.CrossEntropyLoss()
+criterion = nn.CrossEntropyLoss(weight=torch.tensor(train_set.tensor_weigth, device=device))
 optimizer = torch.optim.Adam(deep_punctuation.parameters(), lr=args.lr, weight_decay=args.decay)
 
 
