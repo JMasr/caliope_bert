@@ -54,6 +54,8 @@ def transform_data(file_path, output_path=''):
             data_raw = f.read()
         data_raw = re.sub(r" \.", ".", data_raw)
         data_raw = re.sub(r" ,", ",", data_raw)
+        data_raw = re.sub(r" +", " ", data_raw)
+        data_raw = re.sub(r"\n ", "\n", data_raw)
         data_raw = data_raw.split("\n")
         pool = Pool(processes=cpu_count())
         data_raw = pool.map(seq_transformation, data_raw)
@@ -199,3 +201,8 @@ class Dataset(torch.utils.data.Dataset):
         y_mask = torch.tensor(y_mask)
 
         return x, y, attn_mask, y_mask
+
+
+directory = "../data/gl/raw/"
+raw_texts = os.listdir(directory)
+transform_data([directory + file for file in raw_texts])
