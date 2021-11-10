@@ -10,36 +10,37 @@ def seq_transformation(raw_data):
     if len(raw_data) > 2:
         for word in raw_data.split(" "):
             label = ''
-            if word == word.lower():
-                if word.isalnum():
-                    label = "\t" + "O"
-                elif word[-1] == ",":
-                    label = "\t" + "COMMA"
-                elif word[-1] == ".":
-                    label = "\t" + "PERIOD"
-                elif word[-1] == "?":
-                    label = "\t" + "QUESTION"
-            elif word == word.upper():
-                if word.isalnum():
-                    label = "\t" + "ALL_CAPITAL"
-                elif word[-1] == ",":
-                    label = "\t" + "ALL_CAPITAL+COMMA"
-                elif word[-1] == ".":
-                    label = "\t" + "ALL_CAPITAL+PERIOD"
-                elif word[-1] == "?":
-                    label = "\t" + "ALL_CAPITAL+QUESTION"
-            elif word[0] == word[0].upper():
-                if word.isalnum():
-                    label = "\t" + 'FRITS_CAPITAL'
-                elif word[-1] == ",":
-                    label = "\t" + "FRITS_CAPITAL+COMMA"
-                elif word[-1] == ".":
-                    label = "\t" + "FRITS_CAPITAL+PERIOD"
-                elif word[-1] == "?":
-                    label = "\t" + "FRITS_CAPITAL+QUESTION"
-            word = re.sub(r"[.,]", "", word).lower()
-            if label != '' and word.isalnum():
-                data_output += word + label + '\n'
+            if word:
+                if word == word.lower():
+                    if word.isalnum():
+                        label = "\t" + "O"
+                    elif word[-1] == ",":
+                        label = "\t" + "COMMA"
+                    elif word[-1] == ".":
+                        label = "\t" + "PERIOD"
+                    elif word[-1] == "?":
+                        label = "\t" + "QUESTION"
+                elif word == word.upper():
+                    if word.isalnum():
+                        label = "\t" + "ALL_CAPITAL"
+                    elif word[-1] == ",":
+                        label = "\t" + "ALL_CAPITAL+COMMA"
+                    elif word[-1] == ".":
+                        label = "\t" + "ALL_CAPITAL+PERIOD"
+                    elif word[-1] == "?":
+                        label = "\t" + "ALL_CAPITAL+QUESTION"
+                elif word[0] == word[0].upper():
+                    if word.isalnum():
+                        label = "\t" + 'FRITS_CAPITAL'
+                    elif word[-1] == ",":
+                        label = "\t" + "FRITS_CAPITAL+COMMA"
+                    elif word[-1] == ".":
+                        label = "\t" + "FRITS_CAPITAL+PERIOD"
+                    elif word[-1] == "?":
+                        label = "\t" + "FRITS_CAPITAL+QUESTION"
+                word = re.sub(r"[.,]", "", word).lower()
+                if label != '' and word.isalnum():
+                    data_output += word + label + '\n'
     return data_output
 
 
@@ -54,6 +55,8 @@ def transform_data(file_path, output_path=''):
             data_raw = f.read()
         data_raw = re.sub(r" \.", ".", data_raw)
         data_raw = re.sub(r" ,", ",", data_raw)
+        data_raw = re.sub(r" +", " ", data_raw)
+        data_raw = re.sub(r"\n ", "\n", data_raw)
         data_raw = data_raw.split("\n")
         pool = Pool(processes=cpu_count())
         data_raw = pool.map(seq_transformation, data_raw)
@@ -199,3 +202,8 @@ class Dataset(torch.utils.data.Dataset):
         y_mask = torch.tensor(y_mask)
 
         return x, y, attn_mask, y_mask
+
+
+directory = "../data/gl/raw/"
+raw_texts = os.listdir(directory)
+transform_data([directory + file for file in raw_texts])
