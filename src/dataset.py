@@ -37,30 +37,41 @@ def seq_transformation(raw_data):
                     label = "\t" + "FRITS_CAPITAL+PERIOD"
                 elif word[-1] == "?":
                     label = "\t" + "FRITS_CAPITAL+QUESTION"
-            if label:
-                word = re.sub(r"[.,]", "", word).lower()
+            word = re.sub(r"[.,]", "", word).lower()
+            if label != '' and word.isalnum():
                 data_output += word + label + '\n'
     return data_output
 
 
-def transform_data(file_path):
+def transform_data(file_path, output_path=''):
+    if isinstance(file_path, str):
+        file_path = [file_path]
 
-    with open(file_path, 'r', encoding='utf-8') as f:
-        data_raw = f.read()
-    data_raw = re.sub(r" \.", ".", data_raw)
-    data_raw = re.sub(r" ,", ",", data_raw)
-    data_raw = data_raw.split("\n")
-    pool = Pool(processes=cpu_count())
-    data_raw = pool.map(seq_transformation, data_raw)
-    pool.close()
-    pool.join()
+    all_data = []
+    for file in file_path:
+        data_raw = ''
+        with open(file, 'r', encoding='utf-8') as f:
+            data_raw = f.read()
+        data_raw = re.sub(r" \.", ".", data_raw)
+        data_raw = re.sub(r" ,", ",", data_raw)
+        data_raw = data_raw.split("\n")
+        pool = Pool(processes=cpu_count())
+        data_raw = pool.map(seq_transformation, data_raw)
+        pool.close()
+        pool.join()
 
-    with open(file_path + "_GL.txt", 'w', encoding="utf-8") as f:
-        f.write("".join(data_raw))
-    return data_raw
+        all_data.extend(data_raw)
+
+    if not output_path:
+        output_path = "/".join(file_path[0].split("/")[:-1]) + "/data_processed"
+
+    with open(output_path, 'w', encoding="utf-8") as f:
+        f.write("".join(all_data))
+
+    return all_data
 
 
-def parse_data(file_path, tokenizer, sequence_len, token_style, line=None):
+def parse_data(file_path, tokenizer, sequence_len, token_style):
     """
 
     :param file_path: text file path that contains tokens and punctuations separated by tab in lines
@@ -72,7 +83,7 @@ def parse_data(file_path, tokenizer, sequence_len, token_style, line=None):
     """
     data_items = []
     with open(file_path, 'r', encoding='utf-8') as f:
-        lines = [i.strip() for i in f.readlines() if len(i.split("\t")) == 2]
+        lines = f.readlines()
         # loop until end of the entire text
         idx = 0
         while idx < len(lines):
@@ -84,7 +95,7 @@ def parse_data(file_path, tokenizer, sequence_len, token_style, line=None):
             # -1 because we will have a special end of sequence token at the end
             while len(x) < sequence_len - 1 and idx < len(lines):
 
-                word, punc = lines[idx].split('\t')
+                word, punc = lines[idx].strip().split('\t')
                 tokens = tokenizer.tokenize(word)
                 # if taking these tokens exceeds sequence length we finish current sequence with padding
                 # then start next sequence from this token
