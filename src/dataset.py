@@ -204,6 +204,6 @@ class Dataset(torch.utils.data.Dataset):
         return x, y, attn_mask, y_mask
 
 
-directory = "../data/gl/raw/"
-raw_texts = os.listdir(directory)
-transform_data([directory + file for file in raw_texts])
+# directory = "../data/gl/raw/"
+# raw_texts = os.listdir(directory)
+# transform_data([directory + file for file in raw_texts])
