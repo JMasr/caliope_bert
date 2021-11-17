@@ -50,7 +50,7 @@ def transform_data(file_path, output_path=''):
 
     all_data = []
     for file in file_path:
-        data_raw = ''
+        data_raw = ''  # initialization is needed for multiprocessing
         with open(file, 'r', encoding='utf-8') as f:
             data_raw = f.read()
         data_raw = re.sub(r" \.", ".", data_raw)
@@ -74,18 +74,18 @@ def transform_data(file_path, output_path=''):
     return all_data
 
 
-def parse_data(file_path, tokenizer, sequence_len, token_style):
+def parse_data(file_path, d_tokenizer, sequence_len, token_style):
     """
 
     :param file_path: text file path that contains tokens and punctuations separated by tab in lines
-    :param tokenizer: tokenizer that will be used to further tokenize word for BERT like models
+    :param d_tokenizer: tokenizer that will be used to further tokenize word for BERT like models
     :param sequence_len: maximum length of each sequence
     :param token_style: For getting index of special tokens in config.TOKEN_IDX
     :return: list of [tokens_index, punctuation_index, attention_masks, punctuation_mask], each having sequence_len
     punctuation_mask is used to ignore special indices like padding and intermediate sub-word token during evaluation
     """
     data_items = []
-    dict_weigth = {}.fromkeys(punctuation_dict.keys(), 0)
+    dict_weight = {}.fromkeys(punctuation_dict.keys(), 0)
 
     with open(file_path, 'r', encoding='utf-8') as f:
         lines = f.readlines()
@@ -101,9 +101,9 @@ def parse_data(file_path, tokenizer, sequence_len, token_style):
             while len(x) < sequence_len - 1 and idx < len(lines):
 
                 word, punc = lines[idx].strip().split('\t')
-                tokens = tokenizer.tokenize(word)
-                if punc in dict_weigth:
-                    dict_weigth[punc] += 1
+                tokens = d_tokenizer.tokenize(word)
+                if punc in dict_weight:
+                    dict_weight[punc] += 1
 
                 # if taking these tokens exceeds sequence length we finish current sequence with padding
                 # then start next sequence from this token
@@ -111,11 +111,11 @@ def parse_data(file_path, tokenizer, sequence_len, token_style):
                     break
                 else:
                     for i in range(len(tokens) - 1):
-                        x.append(tokenizer.convert_tokens_to_ids(tokens[i]))
+                        x.append(d_tokenizer.convert_tokens_to_ids(tokens[i]))
                         y.append(0)
                         y_mask.append(0)
                     if len(tokens) > 0:
-                        x.append(tokenizer.convert_tokens_to_ids(tokens[-1]))
+                        x.append(d_tokenizer.convert_tokens_to_ids(tokens[-1]))
                     else:
                         x.append(TOKEN_IDX[token_style]['UNK'])
                     y.append(punctuation_dict[punc])
@@ -131,26 +131,26 @@ def parse_data(file_path, tokenizer, sequence_len, token_style):
             attn_mask = [1 if token != TOKEN_IDX[token_style]['PAD'] else 0 for token in x]
             data_items.append([x, y, attn_mask, y_mask])
 
-    freq = list(set(sorted(dict_weigth.values())))
+    freq = list(set(sorted(dict_weight.values())))
     freq = freq[0] if freq[0] != 0 else freq[1]
-    weigths = [freq/i if i != 0 else 0 for i in dict_weigth.values()]
+    weights = [freq/i if i != 0 else 0 for i in dict_weight.values()]
 
-    return data_items, weigths
+    return data_items, weights
 
 
-class Dataset_(torch.utils.data.Dataset):
-    def __init__(self, files, tokenizer, sequence_len, token_style, is_train=False, augment_rate=0.1,
+class DatasetAllMemo(torch.utils.data.Dataset):
+    def __init__(self, files, data_tokenizer, sequence_len, token_style, is_train=False, augment_rate=0.1,
                  augment_type='substitute'):
         """
 
         :param files: single file containing tokens and punctuations separated by tab in lines
-        :param tokenizer: tokenizer that will be used to further tokenize word for BERT like models
+        :param data_tokenizer: tokenizer that will be used to further tokenize word for BERT like models
         :param sequence_len: length of each sequence
         :param token_style: For getting index of special tokens in config.TOKEN_IDX
         :param augment_rate: token augmentation rate when preparing data
         :param is_train: if false do not apply augmentation
         """
-        self.data, self.tensor_weigth = parse_data(files, tokenizer, sequence_len, token_style)
+        self.data, self.tensor_weight = parse_data(files, data_tokenizer, sequence_len, token_style)
         self.sequence_len = sequence_len
         self.augment_rate = augment_rate
         self.token_style = token_style
@@ -205,12 +205,12 @@ class Dataset_(torch.utils.data.Dataset):
 
 
 class Dataset(torch.utils.data.Dataset):
-    def __init__(self, files, tokenizer, sequence_len, token_style, is_train=False, augment_rate=0.1,
+    def __init__(self, files, data_tokenizer, sequence_len, token_style, is_train=False, augment_rate=0.1,
                  augment_type='substitute'):
         """
 
         :param files: single file containing tokens and punctuations separated by tab in lines
-        :param tokenizer: tokenizer that will be used to further tokenize word for BERT like models
+        :param data_tokenizer: tokenizer that will be used to further tokenize word for BERT like models
         :param sequence_len: length of each sequence
         :param token_style: For getting index of special tokens in config.TOKEN_IDX
         :param augment_rate: token augmentation rate when preparing data
@@ -218,7 +218,8 @@ class Dataset(torch.utils.data.Dataset):
         """
         with open(files, 'r', encoding='utf-8') as f:
             self.raw_data = f.readlines()
-        self.tokenizer = tokenizer
+        self.tensor_weight = [6e-3, 1e-2, 1e-2, 1e-1, 3e-2, 8e-3, 0.5, 1.0, 0, 0.08, 0.35, 0.3]
+        self.tokenizer = data_tokenizer
         self.sequence_len = sequence_len
         self.augment_rate = augment_rate
         self.token_style = token_style
@@ -255,18 +256,19 @@ class Dataset(torch.utils.data.Dataset):
         attn_mask = [1 if token != TOKEN_IDX[self.token_style]['PAD'] else 0 for token in x]
         return x_aug, y_aug, attn_mask, y_mask_aug
 
-    def new_parse_data(self, data):
+    def new_parse_data(self, input_data):
+        x, y, attn_mask, y_mask = [], [], [], []
         idx = 0
         # loop until end of the entire text
-        while idx < len(data):
+        while idx < len(input_data):
             x = [TOKEN_IDX[self.token_style]['START_SEQ']]
             y = [0]
             y_mask = [1]  # which positions we need to consider while evaluating i.e., ignore pad or sub tokens
 
             # loop until we have required sequence length
             # -1 because we will have a special end of sequence token at the end
-            while len(x) < self.sequence_len - 1 and idx < len(data):
-                word, punc = data[idx].strip().split('\t')
+            while len(x) < self.sequence_len - 1 and idx < len(input_data):
+                word, punc = input_data[idx].strip().split('\t')
                 tokens = self.tokenizer.tokenize(word)
                 # if taking these tokens exceeds sequence length we finish current sequence with padding
                 # then start next sequence from this token
