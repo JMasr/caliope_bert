@@ -7,6 +7,7 @@ from tqdm import tqdm
 
 from argparser import parse_arguments
 from dataset import Dataset
+from dataset import cpu_count
 from model import DeepPunctuation, DeepPunctuationCRF
 from config import *
 import augmentation
@@ -51,15 +52,15 @@ elif args.language == 'galician':
     check_for_data_base('gl')
     data_path = os.path.join(args.data_path, 'gl/train')
     print("Loading data ...")
-    train_set = Dataset(data_path, tokenizer=tokenizer, sequence_len=sequence_len,
+    train_set = Dataset(data_path, data_tokenizer=tokenizer, sequence_len=sequence_len,
                         token_style=token_style, is_train=True, augment_rate=ar, augment_type=aug_type)
     print("train-set loaded")
     data_path = data_path.replace('gl/train', 'gl/dev')
-    val_set = Dataset(data_path, tokenizer=tokenizer, sequence_len=sequence_len,
+    val_set = Dataset(data_path, data_tokenizer=tokenizer, sequence_len=sequence_len,
                       token_style=token_style, is_train=False)
     print("validation-set loaded")
     data_path = data_path.replace('gl/dev', 'gl/test')
-    test_set = Dataset(data_path, tokenizer=tokenizer, sequence_len=sequence_len,
+    test_set = Dataset(data_path, data_tokenizer=tokenizer, sequence_len=sequence_len,
                        token_style=token_style, is_train=False)
     print("test-set loaded")
     test_set = [val_set, test_set]
@@ -88,7 +89,7 @@ print("Loading the Database")
 data_loader_params = {
     'batch_size': args.batch_size,
     'shuffle': True,
-    'num_workers': 1
+    'num_workers': cpu_count()
 }
 train_loader = torch.utils.data.DataLoader(train_set, **data_loader_params)
 val_loader = torch.utils.data.DataLoader(val_set, **data_loader_params)
@@ -108,7 +109,8 @@ if args.use_crf:
 else:
     deep_punctuation = DeepPunctuation(args.pretrained_model, freeze_bert=args.freeze_bert, lstm_dim=args.lstm_dim)
 deep_punctuation.to(device)
-criterion = nn.CrossEntropyLoss(weight=torch.tensor(train_set.tensor_weigth, device=device))
+
+criterion = nn.CrossEntropyLoss(weight=torch.tensor(train_set.tensor_weight, device=device))
 optimizer = torch.optim.Adam(deep_punctuation.parameters(), lr=args.lr, weight_decay=args.decay)
 
 
