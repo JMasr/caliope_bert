@@ -1,8 +1,12 @@
+import time
+
 import torch
 import torch.nn as nn
-import numpy as np
 from torch.utils import data
 import torch.multiprocessing
+
+import mlflow
+import numpy as np
 from tqdm import tqdm
 
 from argparser import parse_arguments
@@ -42,15 +46,15 @@ print("+==================+")
 print("| Loading data ... |")
 print("+------------------+")
 if args.language == 'english':
-    train_set = Dataset(os.path.join(args.data_path, 'en/train2012'), tokenizer=tokenizer, sequence_len=sequence_len,
+    train_set = Dataset(os.path.join(args.data_path, 'en/train2012'), data_tokenizer=tokenizer, sequence_len=sequence_len,
                         token_style=token_style, is_train=True, augment_rate=ar, augment_type=aug_type)
     print("\ttrain-set loaded")
-    val_set = Dataset(os.path.join(args.data_path, 'en/dev2012'), tokenizer=tokenizer, sequence_len=sequence_len,
+    val_set = Dataset(os.path.join(args.data_path, 'en/dev2012'), data_tokenizer=tokenizer, sequence_len=sequence_len,
                       token_style=token_style, is_train=False)
     print("\tvalidation-set loaded")
-    test_set_ref = Dataset(os.path.join(args.data_path, 'en/test2011'), tokenizer=tokenizer, sequence_len=sequence_len,
+    test_set_ref = Dataset(os.path.join(args.data_path, 'en/test2011'), data_tokenizer=tokenizer, sequence_len=sequence_len,
                            token_style=token_style, is_train=False)
-    test_set_asr = Dataset(os.path.join(args.data_path, 'en/test2011asr'), tokenizer=tokenizer, sequence_len=sequence_len,
+    test_set_asr = Dataset(os.path.join(args.data_path, 'en/test2011asr'), data_tokenizer=tokenizer, sequence_len=sequence_len,
                            token_style=token_style, is_train=False)
     test_set = [val_set, test_set_ref, test_set_asr]
     print("\ttest-set loaded")
@@ -65,20 +69,20 @@ elif args.language == 'galician':
                       token_style=token_style, is_train=False)
     print("\tvalidation-set loaded")
     data_path = data_path.replace('gl/dev', 'gl/test')
-    test_set = Dataset(data_path, data_tokenizer=tokenizer, sequence_len=sequence_len,
-                       token_style=token_style, is_train=False)
+    test_set_ref = Dataset(data_path, data_tokenizer=tokenizer, sequence_len=sequence_len,
+                           token_style=token_style, is_train=False)
     print("\ttest-set loaded")
-    test_set = [val_set, test_set]
+    test_set = [test_set_ref]
 elif args.language == 'spanish':
-    train_set = Dataset(os.path.join(args.data_path, 'es/train2012'), tokenizer=tokenizer, sequence_len=sequence_len,
+    train_set = Dataset(os.path.join(args.data_path, 'es/train2012'), data_tokenizer=tokenizer, sequence_len=sequence_len,
                         token_style=token_style, is_train=True, augment_rate=ar, augment_type=aug_type)
     print("\ttrain-set loaded")
-    val_set = Dataset(os.path.join(args.data_path, 'es/dev2012'), tokenizer=tokenizer, sequence_len=sequence_len,
+    val_set = Dataset(os.path.join(args.data_path, 'es/dev2012'), data_tokenizer=tokenizer, sequence_len=sequence_len,
                       token_style=token_style, is_train=False)
     print("\tdev-set loaded")
-    test_set_ref = Dataset(os.path.join(args.data_path, 'es/test2011'), tokenizer=tokenizer, sequence_len=sequence_len,
+    test_set_ref = Dataset(os.path.join(args.data_path, 'es/test2011'), data_tokenizer=tokenizer, sequence_len=sequence_len,
                            token_style=token_style, is_train=False)
-    test_set_asr = Dataset(os.path.join(args.data_path, 'es/test2011a'), tokenizer=tokenizer, sequence_len=sequence_len,
+    test_set_asr = Dataset(os.path.join(args.data_path, 'es/test2011a'), data_tokenizer=tokenizer, sequence_len=sequence_len,
                            token_style=token_style, is_train=False)
     print("\ttest-set loaded")
 else:
@@ -106,7 +110,7 @@ log_path = os.path.join(args.save_path, args.name + '_logs.txt')
 # Model
 device = torch.device('cuda' if (args.cuda and torch.cuda.is_available()) else 'cpu')
 print(F"+=============================+")
-print(f"|Loading BERT model using {device}")
+print(f"|Loading BERT model using {str(device).upper()}|")
 print(F"+=============================+")
 
 if args.use_crf:
@@ -203,79 +207,117 @@ def test(data_loader):
     recall = tp/(tp+fn)
     f1 = 2 * precision * recall / (precision + recall)
 
-    return precision, recall, f1, correct/total, cm
+    return np.nan_to_num(precision), np.nan_to_num(recall), np.nan_to_num(f1), correct/total, cm
 
 
 def train():
-    print("Star Training ...")
     with open(log_path, 'a') as f:
         f.write(str(args)+'\n')
-    best_val_acc = 0
-    for epoch in range(args.epoch):
-        train_loss = 0.0
-        train_iteration = 0
-        correct = 0
-        total = 0
-        deep_punctuation.train()
-        for x, y, att, y_mask in tqdm(train_loader, desc='train'):
-            x, y, att, y_mask = x.to(device), y.to(device), att.to(device), y_mask.to(device)
-            y_mask = y_mask.view(-1)
-            if args.use_crf:
-                loss = deep_punctuation.log_likelihood(x, att, y)
-                # y_predict = deep_punctuation(x, att, y)
-                # y_predict = y_predict.view(-1)
-                y = y.view(-1)
-            else:
-                y_predict = deep_punctuation(x, att)
-                y_predict = y_predict.view(-1, y_predict.shape[2])
-                y = y.view(-1)
-                loss = criterion(y_predict, y)
-                y_predict = torch.argmax(y_predict, dim=1).view(-1)
 
-                correct += torch.sum(y_mask * (y_predict == y).long()).item()
+    uni_id = "_".join(time.asctime().split(" ")[:3])
+    mlflow.set_tracking_uri('http://0.0.0.0:5000')
+    mlflow.set_experiment(f"exp_{args.language}_{uni_id}")
+    with mlflow.start_run():
+        # MLflow Tracking #0
+        model_parameters = {"model-name": args.pretrained_model, "seed": args.epoch, "language": args.language,
+                            "epochs":args.epoch, "learning-rate": args.lr, "sequence-length": args.sequence_length,
+                            "batch-size": args.batch_size,"lstm-dim": args.lstm_dim,
+                            "loss-weighted": train_set.tensor_weight, "crf": args.use_crf, "weight-decay": args.decay,
+                            "gradient-clip": args.gradient_clip,
+                            "augment-rate": args.augment_rate, "augment-type": args.augment_type,
+                            "alpha-sub": args.alpha_sub, "alpha-del":args.alpha_del,
+                            }
+        db_characters = {"train-set": len(train_set.raw_data),
+                         "dev-set": len(val_set.raw_data),
+                         "test-set": len(test_set_ref.raw_data)}
 
-            optimizer.zero_grad()
-            train_loss += loss.item()
-            train_iteration += 1
-            loss.backward()
+        mlflow.log_params(model_parameters)  # Log a model parameters
+        mlflow.log_params(db_characters)  # Log a database characteristics
+        # MLflow Tracking - end #
 
-            if args.gradient_clip > 0:
-                torch.nn.utils.clip_grad_norm_(deep_punctuation.parameters(), args.gradient_clip)
-            optimizer.step()
+        best_val_acc = 0
+        for epoch in range(args.epoch):
+            train_loss = 0.0
+            train_iteration = 0
+            correct = 0
+            total = 0
 
-            y_mask = y_mask.view(-1)
+            print("Star Training ...")
+            deep_punctuation.train()
+            for x, y, att, y_mask in tqdm(train_loader, desc='train'):
+                x, y, att, y_mask = x.to(device), y.to(device), att.to(device), y_mask.to(device)
+                y_mask = y_mask.view(-1)
+                if args.use_crf:
+                    loss = deep_punctuation.log_likelihood(x, att, y)
+                    # y_predict = deep_punctuation(x, att, y)
+                    # y_predict = y_predict.view(-1)
+                    y = y.view(-1)
+                else:
+                    y_predict = deep_punctuation(x, att)
+                    y_predict = y_predict.view(-1, y_predict.shape[2])
+                    y = y.view(-1)
+                    loss = criterion(y_predict, y)
+                    y_predict = torch.argmax(y_predict, dim=1).view(-1)
 
-            total += torch.sum(y_mask).item()
+                    correct += torch.sum(y_mask * (y_predict == y).long()).item()
 
-        train_loss /= train_iteration
-        log = 'epoch: {}, Train loss: {}, Train accuracy: {}'.format(epoch, train_loss, correct / total)
-        with open(log_path, 'a') as f:
-            f.write(log + '\n')
-        print(log)
+                optimizer.zero_grad()
+                train_loss += loss.item()
+                train_iteration += 1
+                loss.backward()
 
-        val_acc, val_loss = validate(val_loader)
-        log = 'epoch: {}, Val loss: {}, Val accuracy: {}'.format(epoch, val_loss, val_acc)
-        with open(log_path, 'a') as f:
-            f.write(log + '\n')
-        print(log)
-        if val_acc > best_val_acc:
-            best_val_acc = val_acc
-            torch.save(deep_punctuation.state_dict(), model_save_path)
+                if args.gradient_clip > 0:
+                    torch.nn.utils.clip_grad_norm_(deep_punctuation.parameters(), args.gradient_clip)
+                optimizer.step()
 
-    print('Best validation Acc:', best_val_acc)
-    deep_punctuation.load_state_dict(torch.load(model_save_path))
-    for loader in test_loaders:
-        precision, recall, f1, accuracy, cm = test(loader)
-        log = 'Precision: ' + str(precision) + '\n' + 'Recall: ' + str(recall) + '\n' + 'F1 score: ' + str(f1) + \
-              '\n' + 'Accuracy:' + str(accuracy) + '\n' + 'Confusion Matrix' + str(cm) + '\n'
-        print(log)
-        with open(log_path, 'a') as f:
-            f.write(log)
-        log_text = ''
-        for i in range(1, 5):
-            log_text += str(precision[i] * 100) + ' ' + str(recall[i] * 100) + ' ' + str(f1[i] * 100) + ' '
-        with open(log_path, 'a') as f:
-            f.write(log_text[:-1] + '\n\n')
+                y_mask = y_mask.view(-1)
+
+                total += torch.sum(y_mask).item()
+
+            train_acc = correct / total
+            train_loss /= train_iteration
+
+            log = 'epoch: {}, Train loss: {}, Train accuracy: {}'.format(epoch, train_loss, train_acc)
+            # MLflow Tracking#
+            train_metrics = {"train_loss": train_loss, "train_accuracy": train_acc}
+            mlflow.log_metrics(train_metrics, step=epoch)
+            # Print in log
+            with open(log_path, 'a') as f:
+                f.write(log + '\n')
+            print(log)
+
+            val_acc, val_loss = validate(val_loader)
+
+            log = 'epoch: {}, Val loss: {}, Val accuracy: {}'.format(epoch, val_loss, val_acc)
+            # MLflow Tracking#
+            val_metrics = {"eval_loss": val_loss, "val_accuracy": val_acc}
+            mlflow.log_metrics(val_metrics, step=epoch)
+            # Print in log
+            with open(log_path, 'a') as f:
+                f.write(log + '\n')
+            print(log)
+            if val_acc > best_val_acc:
+                best_val_acc = val_acc
+                torch.save(deep_punctuation.state_dict(), model_save_path)
+
+        print('Best validation Acc:', best_val_acc)
+        deep_punctuation.load_state_dict(torch.load(model_save_path))
+        for loader in test_loaders:
+            precision, recall, f1, accuracy, cm = test(loader)
+            log = 'Precision: ' + str(precision) + '\n' + 'Recall: ' + str(recall) + '\n' + 'F1 score: ' + str(f1) + \
+                  '\n' + 'Accuracy:' + str(accuracy) + '\n' + 'Confusion Matrix' + str(cm) + '\n'
+            print(log)
+            # MLflow Tracking#
+            test_metrics = {"test_acc": accuracy}
+            mlflow.log_metrics(test_metrics)
+            # Print in log
+            with open(log_path, 'a') as f:
+                f.write(log)
+            log_text = ''
+            for i in range(1, 5):
+                log_text += str(precision[i] * 100) + ' ' + str(recall[i] * 100) + ' ' + str(f1[i] * 100) + ' '
+            with open(log_path, 'a') as f:
+                f.write(log_text[:-1] + '\n\n')
 
 
 if __name__ == '__main__':
