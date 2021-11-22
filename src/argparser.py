@@ -20,18 +20,18 @@ def parse_arguments():
     parser.add_argument('--data-path', default='../data/', type=str, help='path to train/dev/test datasets')
     parser.add_argument('--language', default='galician', type=str,
                         help='language, available options are english, spanish, galician')
-    parser.add_argument('--sequence-length', default=96, type=int,
+    parser.add_argument('--sequence-length', default=256, type=int,
                         help='sequence length to use when preparing dataset (default 256)')
     parser.add_argument('--augment-rate', default=0., type=float, help='token augmentation probability')
     parser.add_argument('--augment-type', default='all', type=str, help='which augmentation to use')
     parser.add_argument('--sub-style', default='unk', type=str, help='replacement strategy for substitution augment')
     parser.add_argument('--alpha-sub', default=0.4, type=float, help='augmentation rate for substitution')
     parser.add_argument('--alpha-del', default=0.4, type=float, help='augmentation rate for deletion')
-    parser.add_argument('--lr', default=5e-2, type=float, help='learning rate')
+    parser.add_argument('--lr', default=5e-3, type=float, help='learning rate')
     parser.add_argument('--decay', default=1e-4, type=float, help='weight decay (default: 0)')
     parser.add_argument('--gradient-clip', default=-1, type=float, help='gradient clipping (default: -1 i.e., none)')
     parser.add_argument('--batch-size', default=8, type=int, help='batch size (default: 8)')
-    parser.add_argument('--epoch', default=100, type=int, help='total epochs (default: 10)')
+    parser.add_argument('--epoch', default=10, type=int, help='total epochs (default: 10)')
     parser.add_argument('--save-path', default='out/', type=str, help='model and log save directory')
 
     args = parser.parse_args()
