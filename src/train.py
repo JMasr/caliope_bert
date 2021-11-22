@@ -103,7 +103,7 @@ test_loaders = [torch.utils.data.DataLoader(x, **data_loader_params) for x in te
 
 # logs
 os.makedirs(args.save_path, exist_ok=True)
-model_save_path = os.path.join(args.save_path, 'weights.pt')
+model_save_path = os.path.join(args.save_path, f'weights_{time.time_ns()}.pt')
 log_path = os.path.join(args.save_path, args.name + '_logs.txt')
 
 
@@ -280,7 +280,7 @@ def train():
             log = 'epoch: {}, Train loss: {}, Train accuracy: {}'.format(epoch, train_loss, train_acc)
             # MLflow Tracking#
             train_metrics = {"train_loss": train_loss, "train_accuracy": train_acc}
-            mlflow.log_metrics(train_metrics, step=epoch)
+            mlflow.log_metrics(train_metrics, step=epoch + 1)
             # Print in log
             with open(log_path, 'a') as f:
                 f.write(log + '\n')
@@ -291,7 +291,7 @@ def train():
             log = 'epoch: {}, Val loss: {}, Val accuracy: {}'.format(epoch, val_loss, val_acc)
             # MLflow Tracking#
             val_metrics = {"eval_loss": val_loss, "val_accuracy": val_acc}
-            mlflow.log_metrics(val_metrics, step=epoch)
+            mlflow.log_metrics(val_metrics, step=epoch + 1)
             # Print in log
             with open(log_path, 'a') as f:
                 f.write(log + '\n')
