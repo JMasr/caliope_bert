@@ -38,46 +38,56 @@ sequence_len = args.sequence_length
 aug_type = args.augment_type
 
 # Datasets
+print("+==================+")
+print("| Loading data ... |")
+print("+------------------+")
 if args.language == 'english':
     train_set = Dataset(os.path.join(args.data_path, 'en/train2012'), tokenizer=tokenizer, sequence_len=sequence_len,
                         token_style=token_style, is_train=True, augment_rate=ar, augment_type=aug_type)
+    print("\ttrain-set loaded")
     val_set = Dataset(os.path.join(args.data_path, 'en/dev2012'), tokenizer=tokenizer, sequence_len=sequence_len,
                       token_style=token_style, is_train=False)
+    print("\tvalidation-set loaded")
     test_set_ref = Dataset(os.path.join(args.data_path, 'en/test2011'), tokenizer=tokenizer, sequence_len=sequence_len,
                            token_style=token_style, is_train=False)
     test_set_asr = Dataset(os.path.join(args.data_path, 'en/test2011asr'), tokenizer=tokenizer, sequence_len=sequence_len,
                            token_style=token_style, is_train=False)
     test_set = [val_set, test_set_ref, test_set_asr]
+    print("\ttest-set loaded")
 elif args.language == 'galician':
     check_for_data_base('gl')
     data_path = os.path.join(args.data_path, 'gl/train')
-    print("Loading data ...")
     train_set = Dataset(data_path, data_tokenizer=tokenizer, sequence_len=sequence_len,
                         token_style=token_style, is_train=True, augment_rate=ar, augment_type=aug_type)
-    print("train-set loaded")
+    print("\ttrain-set loaded")
     data_path = data_path.replace('gl/train', 'gl/dev')
     val_set = Dataset(data_path, data_tokenizer=tokenizer, sequence_len=sequence_len,
                       token_style=token_style, is_train=False)
-    print("validation-set loaded")
+    print("\tvalidation-set loaded")
     data_path = data_path.replace('gl/dev', 'gl/test')
     test_set = Dataset(data_path, data_tokenizer=tokenizer, sequence_len=sequence_len,
                        token_style=token_style, is_train=False)
-    print("test-set loaded")
+    print("\ttest-set loaded")
     test_set = [val_set, test_set]
 elif args.language == 'spanish':
     train_set = Dataset(os.path.join(args.data_path, 'es/train2012'), tokenizer=tokenizer, sequence_len=sequence_len,
                         token_style=token_style, is_train=True, augment_rate=ar, augment_type=aug_type)
+    print("\ttrain-set loaded")
     val_set = Dataset(os.path.join(args.data_path, 'es/dev2012'), tokenizer=tokenizer, sequence_len=sequence_len,
                       token_style=token_style, is_train=False)
+    print("\tdev-set loaded")
     test_set_ref = Dataset(os.path.join(args.data_path, 'es/test2011'), tokenizer=tokenizer, sequence_len=sequence_len,
                            token_style=token_style, is_train=False)
     test_set_asr = Dataset(os.path.join(args.data_path, 'es/test2011a'), tokenizer=tokenizer, sequence_len=sequence_len,
                            token_style=token_style, is_train=False)
+    print("\ttest-set loaded")
 else:
     raise ValueError('Incorrect language argument for Dataset')
 
 # Data Loaders
-print("Loading the Database")
+print("+======================+")
+print("| Loading the Database |")
+print("+----------------------+")
 data_loader_params = {
     'batch_size': args.batch_size,
     'shuffle': True,
@@ -94,8 +104,11 @@ log_path = os.path.join(args.save_path, args.name + '_logs.txt')
 
 
 # Model
-print("Loading BERT model")
 device = torch.device('cuda' if (args.cuda and torch.cuda.is_available()) else 'cpu')
+print(F"+=============================+")
+print(f"|Loading BERT model using {device}")
+print(F"+=============================+")
+
 if args.use_crf:
     deep_punctuation = DeepPunctuationCRF(args.pretrained_model, freeze_bert=args.freeze_bert, lstm_dim=args.lstm_dim)
 else:

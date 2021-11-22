@@ -4,7 +4,7 @@ import argparse
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Punctuation restoration')
     parser.add_argument('--name', default='punctuation-restore', type=str, help='name of run')
-    parser.add_argument('--cuda', default=False, type=lambda x: (str(x).lower() == 'true'),
+    parser.add_argument('--cuda', default=True, type=lambda x: (str(x).lower() == 'true'),
                         help='use cuda if available')
     parser.add_argument('--seed', default=1, type=int, help='random seed')
     parser.add_argument('--pretrained-model', default='bertinho-gl-base-cased', type=str,
