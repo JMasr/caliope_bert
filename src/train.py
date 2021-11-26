@@ -46,17 +46,17 @@ print("+==================+")
 print("| Loading data ... |")
 print("+------------------+")
 if args.language == 'english':
-    train_set = Dataset(os.path.join(args.data_path, 'en/train2012'), data_tokenizer=tokenizer, sequence_len=sequence_len,
+    train_set = Dataset(os.path.join(args.data_path, 'en/train'), data_tokenizer=tokenizer, sequence_len=sequence_len,
                         token_style=token_style, is_train=True, augment_rate=ar, augment_type=aug_type)
     print("\ttrain-set loaded")
-    val_set = Dataset(os.path.join(args.data_path, 'en/dev2012'), data_tokenizer=tokenizer, sequence_len=sequence_len,
+    val_set = Dataset(os.path.join(args.data_path, 'en/dev'), data_tokenizer=tokenizer, sequence_len=sequence_len,
                       token_style=token_style, is_train=False)
     print("\tvalidation-set loaded")
-    test_set_ref = Dataset(os.path.join(args.data_path, 'en/test2011'), data_tokenizer=tokenizer, sequence_len=sequence_len,
+    test_set_ref = Dataset(os.path.join(args.data_path, 'en/test'), data_tokenizer=tokenizer, sequence_len=sequence_len,
                            token_style=token_style, is_train=False)
-    test_set_asr = Dataset(os.path.join(args.data_path, 'en/test2011asr'), data_tokenizer=tokenizer, sequence_len=sequence_len,
+    test_set_asr = Dataset(os.path.join(args.data_path, 'en/testasr'), data_tokenizer=tokenizer, sequence_len=sequence_len,
                            token_style=token_style, is_train=False)
-    test_set = [val_set, test_set_ref, test_set_asr]
+    test_set = [test_set_ref]
     print("\ttest-set loaded")
 elif args.language == 'galician':
     check_for_data_base('gl')
@@ -74,15 +74,13 @@ elif args.language == 'galician':
     print("\ttest-set loaded")
     test_set = [test_set_ref]
 elif args.language == 'spanish':
-    train_set = Dataset(os.path.join(args.data_path, 'es/train2012'), data_tokenizer=tokenizer, sequence_len=sequence_len,
+    train_set = Dataset(os.path.join(args.data_path, 'es/train'), data_tokenizer=tokenizer, sequence_len=sequence_len,
                         token_style=token_style, is_train=True, augment_rate=ar, augment_type=aug_type)
     print("\ttrain-set loaded")
-    val_set = Dataset(os.path.join(args.data_path, 'es/dev2012'), data_tokenizer=tokenizer, sequence_len=sequence_len,
+    val_set = Dataset(os.path.join(args.data_path, 'es/dev'), data_tokenizer=tokenizer, sequence_len=sequence_len,
                       token_style=token_style, is_train=False)
     print("\tdev-set loaded")
-    test_set_ref = Dataset(os.path.join(args.data_path, 'es/test2011'), data_tokenizer=tokenizer, sequence_len=sequence_len,
-                           token_style=token_style, is_train=False)
-    test_set_asr = Dataset(os.path.join(args.data_path, 'es/test2011a'), data_tokenizer=tokenizer, sequence_len=sequence_len,
+    test_set_ref = Dataset(os.path.join(args.data_path, 'es/test'), data_tokenizer=tokenizer, sequence_len=sequence_len,
                            token_style=token_style, is_train=False)
     print("\ttest-set loaded")
 else:

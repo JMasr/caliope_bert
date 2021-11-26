@@ -44,6 +44,61 @@ def seq_transformation(raw_data):
     return data_output
 
 
+def making_datasets(raw_data, output_path, criteria=80, with_eval=True):
+
+    if isinstance(raw_data, str):
+        with open(raw_data, 'r') as f:
+            raw_data = f.readlines()
+    elif not isinstance(raw_data, list):
+        raise ValueError('Incorrect type for Dataset')
+
+    data_amount = len(raw_data)
+
+    first_cut = int(data_amount * (criteria / 100)) - 1
+    train_set = raw_data[:first_cut]
+    eval_set, test_set = [], []
+
+    if with_eval:
+        print("+---------------------------------------------+")
+        print("|   ...Making Train, Eval and Test Sets ...   |")
+
+        second_cut = int(((data_amount - first_cut) / 2))
+        eval_set = raw_data[first_cut: (first_cut + second_cut)]
+        test_set = raw_data[-second_cut:]
+
+        print("|---------------------------------------------|")
+        print(f"| Size of TRAIN-set: {len(train_set)} |")
+        print(f"| Size of EVAL-set : {len(eval_set)}  |")
+        print(f"| Size of TEST-set : {len(test_set)}  |")
+        print("+" + ("-" * (len(f"| Size of TRAIN-set: {len(train_set)} |") - 2)) + "+\n")
+
+        with open(output_path + "/train", 'x') as f:
+            f.writelines(train_set)
+        with open(output_path + "/dev", 'x') as f:
+            f.writelines(eval_set)
+        with open(output_path + "/test", 'x') as f:
+            f.writelines(test_set)
+
+        return train_set, test_set, eval_set
+    else:
+        print("+---------------------------------------------+")
+        print("|   ...Making Train, and Test Sets ...   |")
+
+        test_set = raw_data[first_cut:]
+
+        print("|---------------------------------------------|")
+        print(f"| Size of TRAIN-set: {len(train_set)} |")
+        print(f"| Size of TEST-set : {len(test_set)}  |")
+        print("+" + ("-" * (len(f"| Size of TRAIN-set: {len(train_set)} |") - 2)) + "+\n")
+
+        with open(output_path + "/train", 'x') as f:
+            f.writelines(train_set)
+        with open(output_path + "/test", 'x') as f:
+            f.writelines(test_set)
+
+        return train_set, test_set, eval_set
+
+
 def transform_data(file_path, output_path=''):
     if isinstance(file_path, str):
         file_path = [file_path]
@@ -318,3 +373,8 @@ class Dataset(torch.utils.data.Dataset):
         y_mask = torch.tensor(y_mask)
 
         return x, y, attn_mask, y_mask
+
+path = "/home/jmramirez/Documentos/Caliope/caliope-bert/mi_repo/caliope_bert/data/es/raw/TED2020v2"
+
+making_datasets(transform_data(path), '../data/es')
+
