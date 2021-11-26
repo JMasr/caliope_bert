@@ -24,6 +24,8 @@ class DeepPunctuation(nn.Module):
         self.lstm = nn.LSTM(input_size=bert_dim, hidden_size=hidden_size, num_layers=1, bidirectional=True)
         self.linear = nn.Linear(in_features=hidden_size*2, out_features=len(punctuation_dict))
 
+        self.ordered_layers = [self.bert_layer, self.lstm, self.linear]
+
     def forward(self, x, attn_masks):
         if len(x.shape) == 1:
             x = x.view(1, x.shape[0])  # add dummy batch for single sample
