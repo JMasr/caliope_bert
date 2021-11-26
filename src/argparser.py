@@ -5,21 +5,21 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='Punctuation restoration')
     # General arguments about the experiment (id, language, gpu-cpu, seed, useful directories
     parser.add_argument('--name', default='caliope_00', type=str, help='name of run')
-    parser.add_argument('--language', default='galician', type=str, help='language, available options are gl, es, en')
-    parser.add_argument('--cuda', default=True, type=lambda x: (str(x).lower() == 'true'), help='use cuda if available')
+    parser.add_argument('--language', default='es', type=str, help='language, available options are gl, es, en')
+    parser.add_argument('--cuda', default=False, type=lambda x: (str(x).lower() == 'true'), help='use cuda if available')
     parser.add_argument('--seed', default=1, type=int, help='random seed')
     parser.add_argument('--data-path', default='../data/', type=str, help='path to train/dev/test datasets')
     parser.add_argument('--save-path', default='out/', type=str, help='model and log save directory')
 
-    parser.add_argument('--pretrained-model', default='bertinho-gl-base-cased', type=str, help="pretrained BERT's LM")
-    # parser.add_argument('--pretrained-model', default='bert-base-uncased', type=str, help="pretrained BERT's LM")
+    # parser.add_argument('--pretrained-model', default='bertinho', type=str, help="pretrained BERT's LM")
+    parser.add_argument('--pretrained-model', default='berto', type=str, help="pretrained BERT's LM")
     parser.add_argument('--freeze-bert', default=False, type=lambda x: (str(x).lower() == 'true'),
                         help='Freeze BERT layers or not')
     parser.add_argument('--use-crf', default=False, type=lambda x: (str(x).lower() == 'true'),
                         help='whether to use CRF layer or not')
 
     parser.add_argument('--epoch', default=10, type=int, help='total epochs (default: 10)')
-    parser.add_argument('--sequence-length', default=256, type=int,
+    parser.add_argument('--sequence-length', default=96, type=int,
                         help='sequence length to use when preparing dataset (default 256)')
     parser.add_argument('--batch-size', default=8, type=int, help='batch size (default: 8)')
     parser.add_argument('--lstm-dim', default=-1, type=int,

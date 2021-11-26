@@ -8,7 +8,9 @@ class DeepPunctuation(nn.Module):
     def __init__(self, pretrained_model, freeze_bert=False, lstm_dim=-1):
         super(DeepPunctuation, self).__init__()
         self.output_dim = len(punctuation_dict)
-        if 'bertinho' in pretrained_model:
+        if 'berto' in pretrained_model:
+            self.bert_layer = MODELS[pretrained_model][0].from_pretrained('../models/berto/')
+        elif 'bertinho' in pretrained_model:
             self.bert_layer = MODELS[pretrained_model][0].from_pretrained('../models/bertinho/')
         else:
             self.bert_layer = MODELS[pretrained_model][0].from_pretrained(pretrained_model)

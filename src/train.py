@@ -27,7 +27,9 @@ torch.backends.cudnn.benchmark = False
 np.random.seed(args.seed)
 
 # tokenizer
-if 'bertinho' in args.pretrained_model:
+if 'berto' in args.pretrained_model:
+    tokenizer = MODELS[args.pretrained_model][1].from_pretrained('../models/berto/')
+elif 'bertinho' in args.pretrained_model:
     tokenizer = MODELS[args.pretrained_model][1].from_pretrained('../models/bertinho/')
 else:
     tokenizer = MODELS[args.pretrained_model][1].from_pretrained(args.pretrained_model)
@@ -45,7 +47,7 @@ aug_type = args.augment_type
 print("+==================+")
 print("| Loading data ... |")
 print("+------------------+")
-if args.language == 'english':
+if args.language == 'en':
     train_set = Dataset(os.path.join(args.data_path, 'en/train2012'), data_tokenizer=tokenizer, token_style=token_style,
                         sequence_len=sequence_len,  is_train=True, augment_rate=ar, augment_type=aug_type)
     print("\ttrain-set loaded")
@@ -58,7 +60,7 @@ if args.language == 'english':
                            sequence_len=sequence_len, token_style=token_style)
     test_set = [val_set, test_set_ref, test_set_asr]
     print("\ttest-set loaded")
-elif args.language == 'galician':
+elif args.language == 'gl':
     check_for_data_base('gl')
     data_path = os.path.join(args.data_path, 'gl/train')
     train_set = Dataset(data_path, data_tokenizer=tokenizer, sequence_len=sequence_len,
@@ -73,7 +75,7 @@ elif args.language == 'galician':
                            token_style=token_style, is_train=False)
     print("\ttest-set loaded")
     test_set = [test_set_ref]
-elif args.language == 'spanish':
+elif args.language == 'es':
     train_set = Dataset(os.path.join(args.data_path, 'es/train'), data_tokenizer=tokenizer, token_style=token_style,
                         sequence_len=sequence_len, is_train=True, augment_rate=ar, augment_type=aug_type)
     print("\ttrain-set loaded")
@@ -271,9 +273,10 @@ def train():
                     torch.nn.utils.clip_grad_norm_(deep_punctuation.parameters(), max_norm=2.0, norm_type=2)
 
                 # Calculate gradient norms
-                for layer in deep_punctuation.ordered_layers:
-                    norm_grad = layer.weight.grad.norm()
-                    batch_norm.append(norm_grad.numpy())
+                for n, layer in enumerate(deep_punctuation.ordered_layers):
+                    if n == 2:
+                        norm_grad = layer.weight.grad.norm()
+                        batch_norm.append(norm_grad.numpy())
 
                 optimizer.step()
 

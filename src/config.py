@@ -122,6 +122,8 @@ MODELS = {
     'albert-base-v1': (AlbertModel, AlbertTokenizer, 768, 'albert'),
     'albert-base-v2': (AlbertModel, AlbertTokenizer, 768, 'albert'),
     'albert-large-v2': (AlbertModel, AlbertTokenizer, 1024, 'albert'),
-    'bertinho-gl-base-cased': (BertModel.from_pretrained('../models/bertinho/'),
+    'berto': (BertModel.from_pretrained('../models/berto/'),
+                             BertTokenizer.from_pretrained('../models/berto/'), 768, 'bert'),
+    'bertinho': (BertModel.from_pretrained('../models/bertinho/'),
                                AutoTokenizer.from_pretrained('../models/bertinho/'), 768, 'bert')
 }
