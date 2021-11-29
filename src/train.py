@@ -103,10 +103,16 @@ val_loader = torch.utils.data.DataLoader(val_set, **data_loader_params)
 test_loaders = [torch.utils.data.DataLoader(x, **data_loader_params) for x in test_set]
 
 # logs
-os.makedirs(args.save_path, exist_ok=True)
-model_save_path = os.path.join(args.save_path, f'weights_{time.time_ns()}.pt')
-log_path = os.path.join(args.save_path, args.name + f'_logs_{time.time_ns()}.txt')
 
+if args.save_path:
+    save_path = args.save_path
+else:
+    date = "_".join(time.asctime().split(" ")[:3])
+    save_path = f"exp_{args.language}_{date}/"
+
+os.makedirs(save_path, exist_ok=True)
+model_save_path = os.path.join(save_path, 'weights.pt')
+log_path = os.path.join(save_path, args.name + '_logs_.txt')
 
 # Model
 device = torch.device('cuda' if (args.cuda and torch.cuda.is_available()) else 'cpu')
@@ -236,6 +242,7 @@ def train():
         mlflow.log_params(model_parameters)  # Log a model parameters
         mlflow.log_params(db_characters)  # Log a database characteristics
         # MLflow Tracking - end #
+
         batch_norm = []
         best_val_acc = 0
         for epoch in range(args.epoch):
@@ -275,7 +282,7 @@ def train():
                 # Calculate gradient norms
                 for n, layer in enumerate(deep_punctuation.ordered_layers):
                     if n == 2:
-                        norm_grad = layer.weight.grad.norm()
+                        norm_grad = layer.weight.grad.norm().cpu()
                         batch_norm.append(norm_grad.numpy())
 
                 optimizer.step()
