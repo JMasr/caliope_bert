@@ -1,2 +1,16 @@
 # Example script for training
-python train.py --cuda=True --pretrained-model=bertinho-gl-base-cased --freeze-bert=False --lstm-dim=-1 --language=galician --seed=1 --lr=5e-8 --epoch=100 --use-crf=False --augment-type=none  --augment-rate=0.15 --alpha-sub=0.4 --alpha-del=0.4 --data-path=../data/ --save-path=out
+python train.py --epoch=25 --sequence-length=256 --batch-size=8 --lr=5e-10 --gradient-clip=1
+python train.py --epoch=25 --sequence-length=256 --batch-size=8 --lr=5e-10 --gradient-clip=0
+
+python train.py --epoch=25 --sequence-length=256 --batch-size=8 --lr=5e-8 --gradient-clip=1
+python train.py --epoch=25 --sequence-length=256 --batch-size=8 --lr=5e-8 --gradient-clip=0
+
+python train.py --epoch=25 --sequence-length=256 --batch-size=8 --lr=5e-7 --gradient-clip=0
+python train.py --epoch=25 --sequence-length=256 --batch-size=8 --lr=5e-7 --gradient-clip=1
+
+python train.py --epoch=25 --sequence-length=256 --batch-size=8 --lr=5e-6 --gradient-clip=0
+python train.py --epoch=25 --sequence-length=256 --batch-size=8 --lr=5e-6 --gradient-clip=1
+
+python train.py --epoch=25 --sequence-length=256 --batch-size=8 --lr=5e-5 --gradient-clip=0
+python train.py --epoch=25 --sequence-length=256 --batch-size=8 --lr=5e-5 --gradient-clip=1
+

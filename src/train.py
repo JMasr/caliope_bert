@@ -27,7 +27,9 @@ torch.backends.cudnn.benchmark = False
 np.random.seed(args.seed)
 
 # tokenizer
-if 'bertinho' in args.pretrained_model:
+if 'berto' in args.pretrained_model:
+    tokenizer = MODELS[args.pretrained_model][1].from_pretrained('../models/berto/')
+elif 'bertinho' in args.pretrained_model:
     tokenizer = MODELS[args.pretrained_model][1].from_pretrained('../models/bertinho/')
 else:
     tokenizer = MODELS[args.pretrained_model][1].from_pretrained(args.pretrained_model)
@@ -45,20 +47,20 @@ aug_type = args.augment_type
 print("+==================+")
 print("| Loading data ... |")
 print("+------------------+")
-if args.language == 'english':
-    train_set = Dataset(os.path.join(args.data_path, 'en/train'), data_tokenizer=tokenizer, sequence_len=sequence_len,
-                        token_style=token_style, is_train=True, augment_rate=ar, augment_type=aug_type)
+if args.language == 'en':
+    train_set = Dataset(os.path.join(args.data_path, 'en/train2012'), data_tokenizer=tokenizer, token_style=token_style,
+                        sequence_len=sequence_len,  is_train=True, augment_rate=ar, augment_type=aug_type)
     print("\ttrain-set loaded")
-    val_set = Dataset(os.path.join(args.data_path, 'en/dev'), data_tokenizer=tokenizer, sequence_len=sequence_len,
+    val_set = Dataset(os.path.join(args.data_path, 'en/dev2012'), data_tokenizer=tokenizer, sequence_len=sequence_len,
                       token_style=token_style, is_train=False)
     print("\tvalidation-set loaded")
-    test_set_ref = Dataset(os.path.join(args.data_path, 'en/test'), data_tokenizer=tokenizer, sequence_len=sequence_len,
-                           token_style=token_style, is_train=False)
-    test_set_asr = Dataset(os.path.join(args.data_path, 'en/testasr'), data_tokenizer=tokenizer, sequence_len=sequence_len,
-                           token_style=token_style, is_train=False)
-    test_set = [test_set_ref]
+    test_set_ref = Dataset(os.path.join(args.data_path, 'en/test2011'), data_tokenizer=tokenizer, is_train=False,
+                           sequence_len=sequence_len, token_style=token_style)
+    test_set_asr = Dataset(os.path.join(args.data_path, 'en/test2011asr'), data_tokenizer=tokenizer, is_train=False,
+                           sequence_len=sequence_len, token_style=token_style)
+    test_set = [val_set, test_set_ref, test_set_asr]
     print("\ttest-set loaded")
-elif args.language == 'galician':
+elif args.language == 'gl':
     check_for_data_base('gl')
     data_path = os.path.join(args.data_path, 'gl/train')
     train_set = Dataset(data_path, data_tokenizer=tokenizer, sequence_len=sequence_len,
@@ -73,15 +75,16 @@ elif args.language == 'galician':
                            token_style=token_style, is_train=False)
     print("\ttest-set loaded")
     test_set = [test_set_ref]
-elif args.language == 'spanish':
-    train_set = Dataset(os.path.join(args.data_path, 'es/train'), data_tokenizer=tokenizer, sequence_len=sequence_len,
-                        token_style=token_style, is_train=True, augment_rate=ar, augment_type=aug_type)
+elif args.language == 'es':
+    train_set = Dataset(os.path.join(args.data_path, 'es/train'), data_tokenizer=tokenizer, token_style=token_style,
+                        sequence_len=sequence_len, is_train=True, augment_rate=ar, augment_type=aug_type)
     print("\ttrain-set loaded")
     val_set = Dataset(os.path.join(args.data_path, 'es/dev'), data_tokenizer=tokenizer, sequence_len=sequence_len,
                       token_style=token_style, is_train=False)
     print("\tdev-set loaded")
-    test_set_ref = Dataset(os.path.join(args.data_path, 'es/test'), data_tokenizer=tokenizer, sequence_len=sequence_len,
-                           token_style=token_style, is_train=False)
+    test_set_ref = Dataset(os.path.join(args.data_path, 'es/test'), data_tokenizer=tokenizer, token_style=token_style,
+                           sequence_len=sequence_len, is_train=False)
+    test_set = [test_set_ref]
     print("\ttest-set loaded")
 else:
     raise ValueError('Incorrect language argument for Dataset')
@@ -100,10 +103,15 @@ val_loader = torch.utils.data.DataLoader(val_set, **data_loader_params)
 test_loaders = [torch.utils.data.DataLoader(x, **data_loader_params) for x in test_set]
 
 # logs
-os.makedirs(args.save_path, exist_ok=True)
-model_save_path = os.path.join(args.save_path, f'weights_{time.time_ns()}.pt')
-log_path = os.path.join(args.save_path, args.name + '_logs.txt')
+if args.save_path:
+    save_path = args.save_path
+else:
+    date = "_".join(time.asctime().split(" ")[:3])
+    save_path = f"exp_{args.language}_{date}/"
 
+os.makedirs(save_path, exist_ok=True)
+model_save_path = os.path.join(save_path, 'weights.pt')
+log_path = os.path.join(save_path, args.name + '_logs_.txt')
 
 # Model
 device = torch.device('cuda' if (args.cuda and torch.cuda.is_available()) else 'cpu')
@@ -117,7 +125,8 @@ else:
     deep_punctuation = DeepPunctuation(args.pretrained_model, freeze_bert=args.freeze_bert, lstm_dim=args.lstm_dim)
 deep_punctuation.to(device)
 
-criterion = nn.CrossEntropyLoss(weight=torch.tensor(train_set.tensor_weight, device=device))
+t_weight = torch.tensor(train_set.tensor_weight, device=device)
+criterion = nn.CrossEntropyLoss(weight=t_weight)
 optimizer = torch.optim.Adam(deep_punctuation.parameters(), lr=args.lr, weight_decay=args.decay)
 
 
@@ -218,21 +227,22 @@ def train():
     with mlflow.start_run():
         # MLflow Tracking #0
         model_parameters = {"model-name": args.pretrained_model, "seed": args.epoch, "language": args.language,
-                            "epochs":args.epoch, "learning-rate": args.lr, "sequence-length": args.sequence_length,
-                            "batch-size": args.batch_size,"lstm-dim": args.lstm_dim,
-                            "loss-weighted": train_set.tensor_weight, "crf": args.use_crf, "weight-decay": args.decay,
+                            "epochs": args.epoch, "learning-rate": args.lr, "sequence-length": args.sequence_length,
+                            "batch-size": args.batch_size, "lstm-dim": args.lstm_dim,
+                            "loss-weighted": t_weight, "crf": args.use_crf, "weight-decay": args.decay,
                             "gradient-clip": args.gradient_clip,
                             "augment-rate": args.augment_rate, "augment-type": args.augment_type,
-                            "alpha-sub": args.alpha_sub, "alpha-del":args.alpha_del,
+                            "alpha-sub": args.alpha_sub, "alpha-del": args.alpha_del,
                             }
-        db_characters = {"train-set": len(train_set.raw_data),
-                         "dev-set": len(val_set.raw_data),
-                         "test-set": len(test_set_ref.raw_data)}
+        db_characters = {"train-set": len(train_set),
+                         "dev-set": len(val_set),
+                         "test-set": len(test_set_ref)}
 
         mlflow.log_params(model_parameters)  # Log a model parameters
         mlflow.log_params(db_characters)  # Log a database characteristics
         # MLflow Tracking - end #
 
+        batch_norm = []
         best_val_acc = 0
         for epoch in range(args.epoch):
             train_loss = 0.0
@@ -249,7 +259,7 @@ def train():
                     loss = deep_punctuation.log_likelihood(x, att, y)
                     # y_predict = deep_punctuation(x, att, y)
                     # y_predict = y_predict.view(-1)
-                    y = y.view(-1)
+                    # y = y.view(-1)
                 else:
                     y_predict = deep_punctuation(x, att)
                     y_predict = y_predict.view(-1, y_predict.shape[2])
@@ -264,8 +274,16 @@ def train():
                 train_iteration += 1
                 loss.backward()
 
+                # Doing Gradient clipping, very useful!
                 if args.gradient_clip > 0:
-                    torch.nn.utils.clip_grad_norm_(deep_punctuation.parameters(), args.gradient_clip)
+                    torch.nn.utils.clip_grad_norm_(deep_punctuation.parameters(), max_norm=2.0, norm_type=2)
+
+                # Calculate gradient norms
+                for n, layer in enumerate(deep_punctuation.ordered_layers):
+                    if n == 2:
+                        norm_grad = layer.weight.grad.norm().cpu()
+                        batch_norm.append(norm_grad.numpy())
+
                 optimizer.step()
 
                 y_mask = y_mask.view(-1)
@@ -277,7 +295,7 @@ def train():
 
             log = 'epoch: {}, Train loss: {}, Train accuracy: {}'.format(epoch, train_loss, train_acc)
             # MLflow Tracking#
-            train_metrics = {"train_loss": train_loss, "train_accuracy": train_acc}
+            train_metrics = {"train_loss": train_loss, "train_accuracy": train_acc, "GradientNorm": np.mean(batch_norm)}
             mlflow.log_metrics(train_metrics, step=epoch + 1)
             # Print in log
             with open(log_path, 'a') as f:
