@@ -72,6 +72,7 @@ def making_datasets(raw_data, output_path, criteria=80, with_eval=True):
         print(f"| Size of TEST-set : {len(test_set)}  |")
         print("+" + ("-" * (len(f"| Size of TRAIN-set: {len(train_set)} |") - 2)) + "+\n")
 
+        os.makedirs(output_path, exist_ok=True)
         with open(output_path + "/train", 'x') as f:
             f.writelines(train_set)
         with open(output_path + "/dev", 'x') as f:
@@ -273,7 +274,7 @@ class Dataset(torch.utils.data.Dataset):
         """
         with open(files, 'r', encoding='utf-8') as f:
             self.raw_data = f.readlines()
-        self.tensor_weight = [6e-3, 1e-2, 1e-2, 1e-1, 3e-2, 8e-3, 0.5, 1.0, 0, 0.08, 0.35, 0.3]
+        self.tensor_weight = [6e-3, 1e-2, 1e-2, 1e-1, 3e-2, 8e-3, 0.5, 1.0, 1.0, 0.08, 0.35, 0.3]
         self.tokenizer = data_tokenizer
         self.sequence_len = sequence_len
         self.augment_rate = augment_rate

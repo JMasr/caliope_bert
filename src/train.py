@@ -125,7 +125,11 @@ else:
     deep_punctuation = DeepPunctuation(args.pretrained_model, freeze_bert=args.freeze_bert, lstm_dim=args.lstm_dim)
 deep_punctuation.to(device)
 
-t_weight = torch.tensor(train_set.tensor_weight, device=device)
+if args.loss_w:
+    t_weight = torch.tensor(train_set.tensor_weight, device=device)
+else:
+    t_weight = torch.tensor([1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.], device=device)
+
 criterion = nn.CrossEntropyLoss(weight=t_weight)
 optimizer = torch.optim.Adam(deep_punctuation.parameters(), lr=args.lr, weight_decay=args.decay)
 
@@ -136,6 +140,12 @@ def validate(data_loader):
     """
     num_iteration = 0
     deep_punctuation.eval()
+    # Class Metrics
+    tp = np.zeros(1 + len(punctuation_dict), dtype=int)
+    fp = np.zeros(1 + len(punctuation_dict), dtype=int)
+    fn = np.zeros(1 + len(punctuation_dict), dtype=int)
+    cm = np.zeros((len(punctuation_dict), len(punctuation_dict)), dtype=int)
+    # Global metrics
     correct = 0
     total = 0
     val_loss = 0
@@ -159,7 +169,30 @@ def validate(data_loader):
             y_mask = y_mask.view(-1)
             correct += torch.sum(y_mask * (y_predict == y).long()).item()
             total += torch.sum(y_mask).item()
-    return correct/total, val_loss/num_iteration
+            for i in range(y.shape[0]):
+                if y_mask[i] == 0:
+                    # since we created this position due to padding or sub-word tokenization, so we can ignore it
+                    continue
+                cor = y[i]
+                prd = y_predict[i]
+                if cor == prd:
+                    tp[cor] += 1
+                else:
+                    fn[cor] += 1
+                    fp[prd] += 1
+                cm[cor][prd] += 1
+        # ignore first index which is for no punctuation
+        tp[-1] = np.sum(tp[1:])
+        fp[-1] = np.sum(fp[1:])
+        fn[-1] = np.sum(fn[1:])
+
+        global_loss = val_loss/num_iteration
+        accuracy = correct/total
+        precision = tp / (tp + fp) if (tp + fp).any() else 0
+        recall = tp / (tp + fn) if (tp + fn).any() else 0
+        f1 = 2 * precision * recall / (precision + recall) if (precision + recall).any() else 0
+
+    return accuracy, global_loss, np.nan_to_num(precision), np.nan_to_num(recall), np.nan_to_num(f1), cm
 
 
 def test(data_loader):
@@ -210,9 +243,9 @@ def test(data_loader):
     tp[-1] = np.sum(tp[1:])
     fp[-1] = np.sum(fp[1:])
     fn[-1] = np.sum(fn[1:])
-    precision = tp/(tp+fp)
-    recall = tp/(tp+fn)
-    f1 = 2 * precision * recall / (precision + recall)
+    precision = tp/(tp+fp) if (tp + fp).any() else 0
+    recall = tp/(tp+fn) if (tp + fn).any() else 0
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall).any() else 0
 
     return np.nan_to_num(precision), np.nan_to_num(recall), np.nan_to_num(f1), correct/total, cm
 
@@ -302,19 +335,43 @@ def train():
                 f.write(log + '\n')
             print(log)
 
-            val_acc, val_loss = validate(val_loader)
+            val_acc, val_loss, val_precision, val_recall, val_f1, val_cm = validate(val_loader)
 
-            log = 'epoch: {}, Val loss: {}, Val accuracy: {}'.format(epoch, val_loss, val_acc)
-            # MLflow Tracking#
-            val_metrics = {"eval_loss": val_loss, "val_accuracy": val_acc}
-            mlflow.log_metrics(val_metrics, step=epoch + 1)
-            # Print in log
+            log = 'epoch: {}, Val loss: {}, Val accuracy: {}\n'.format(epoch, val_loss, val_acc)
+            log_val_metrics = f'Precision: {val_precision}\n' \
+                              f'Recall: {val_recall}\n' \
+                              f'F1 score: {val_f1}\n'
+            # Print log
             with open(log_path, 'a') as f:
-                f.write(log + '\n')
+                f.write(log)
+                f.write(log_val_metrics)
             print(log)
+            print(log_val_metrics)
+
             if val_acc > best_val_acc:
                 best_val_acc = val_acc
                 torch.save(deep_punctuation.state_dict(), model_save_path)
+
+            # MLflow Tracking #
+            val_metrics = {"eval_loss": val_loss, "val_accuracy": val_acc,
+                           "P_Lower": val_precision[0], "P_Lower-Comma": val_precision[1],
+                           "P_Lower-Period": val_precision[2], "P_All-Capital": val_precision[4],
+                           "P_Frits-Capital": val_precision[5], "P_All-Capital-Comma": val_precision[6],
+                           "P_All-Capital-Period": val_precision[7], "P_Frits-Capital-Comma": val_precision[9],
+                           "P_Frits-Capital-Period": val_precision[10],
+                           #
+                           "R_Lower": val_recall[0], "R_Lower-Comma": val_recall[1], "R_Lower-Period": val_recall[2],
+                           "R_All-Capital": val_recall[4], "R_Frits-Capital": val_recall[5],
+                           "R_All-Capital-Comma": val_recall[6], "R_All-Capital-Period": val_recall[7],
+                           "R_Frits-Capital-Comma": val_recall[9], "R_Frits-Capital-Period": val_recall[10],
+                           #
+                           "F1_Lower": val_f1[0], "F1_Lower-Comma": val_f1[1], "F1_Lower-Period": val_f1[2],
+                           "F1_All-Capital": val_f1[4], "F1_Frits-Capital": val_f1[5],
+                           "F1_All-Capital-Comma": val_f1[6], "F1_All-Capital-Period": val_f1[7],
+                           "F1_Frits-Capital-Comma": val_f1[9], "F1_Frits-Capital-Period": val_f1[10],
+                           }
+
+            mlflow.log_metrics(val_metrics, step=epoch + 1)
 
         print('Best validation Acc:', best_val_acc)
         deep_punctuation.load_state_dict(torch.load(model_save_path))
