@@ -22,6 +22,7 @@ def download_file_from_google_drive(id_token, destination):
 
     def save_response_content(response, path_to_save):
         chunk_size = 32768
+        os.makedirs(path_to_save, exist_ok=True)
         with open(path_to_save, "wb") as f:
             for chunk in response.iter_content(chunk_size):
                 if chunk:  # filter out keep-alive new chunks
