@@ -6,7 +6,7 @@ def parse_arguments():
     # General arguments about the experiment (id, language, gpu-cpu, seed, useful directories
     parser.add_argument('--name', default='caliope_00', type=str, help='name of run')
     parser.add_argument('--language', default='gl', type=str, help='language, available options are gl, es, en')
-    parser.add_argument('--cuda', default=False, type=lambda x: (str(x).lower() == 'true'), help='use cuda if available')
+    parser.add_argument('--cuda', default=True, type=lambda x: (str(x).lower() == 'true'), help='use cuda if available')
     parser.add_argument('--seed', default=1, type=int, help='random seed')
     parser.add_argument('--data-path', default='../data/', type=str, help='path to train/dev/test datasets')
     parser.add_argument('--save-path', default='', type=str, help='model and log save directory')
