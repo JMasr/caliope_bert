@@ -373,8 +373,3 @@ class Dataset(torch.utils.data.Dataset):
         y_mask = torch.tensor(y_mask)
 
         return x, y, attn_mask, y_mask
-
-path = "/home/jmramirez/Documentos/Caliope/caliope-bert/mi_repo/caliope_bert/data/es/raw/TED2020v2"
-
-making_datasets(transform_data(path), '../data/es')
-

@@ -45,13 +45,13 @@ def check_for_models():
     destination = '../models/berto'
     if os.path.exists(destination) is False:
         print("Download component...")
-        file_id = '1hE94i45QewBET3rXkgcCRNI40rS2_1eH'
+        file_id = ''
         download_file_from_google_drive(file_id, destination)
 
     destination = destination.replace('berto', 'bertinho')
     if os.path.exists(destination) is False:
         print("Download component...")
-        file_id = '19RQOTxDdYxXyY92nPT-asuSNN_RyvOJZ'
+        file_id = ''
         download_file_from_google_drive(file_id, destination)
 
 
@@ -133,7 +133,6 @@ transformation_dict = {0: lambda x: x.lower(), 1: (lambda x: x + ','), 2: (lambd
 
 
 # pretrained model name: (model class, model tokenizer, output dimension, token style)
-check_for_models()
 MODELS = {
     'bert-base-uncased': (BertModel, BertTokenizer, 768, 'bert'),
     'bert-large-uncased': (BertModel, BertTokenizer, 1024, 'bert'),
