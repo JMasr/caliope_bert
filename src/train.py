@@ -8,6 +8,7 @@ import torch.multiprocessing
 import mlflow
 import numpy as np
 from tqdm import tqdm
+from uuid import uuid4
 
 from argparser import parse_arguments
 from dataset import Dataset
@@ -106,8 +107,9 @@ test_loaders = [torch.utils.data.DataLoader(x, **data_loader_params) for x in te
 if args.save_path:
     save_path = args.save_path
 else:
+    uniq_id = str(uuid4()).split("-")[0]
     date = "_".join(time.asctime().split(" ")[:3])
-    save_path = f"exp_{args.language}_{date}/"
+    save_path = f"exp_{args.language}_{date}_{uniq_id}/"
 
 os.makedirs(save_path, exist_ok=True)
 model_save_path = os.path.join(save_path, 'weights.pt')

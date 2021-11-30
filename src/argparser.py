@@ -27,7 +27,7 @@ def parse_arguments():
     parser.add_argument('--lr', default=5e-6, type=float, help='learning rate')
     parser.add_argument('--decay', default=0, type=float, help='weight decay (default: 0)')
     parser.add_argument('--gradient-clip', default=1, type=float, help='gradient clipping (default: -1 i.e., none)')
-    parser.add_argument('--loss-w', default=False, type=lambda x: (str(x).lower() == 'true'),
+    parser.add_argument('--loss-w', default=True, type=lambda x: (str(x).lower() == 'true'),
                         help='whether to use a weighted tensor for loss function')
 
     parser.add_argument('--augment-rate', default=0., type=float, help='token augmentation probability')
