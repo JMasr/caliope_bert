@@ -104,10 +104,10 @@ val_loader = torch.utils.data.DataLoader(val_set, **data_loader_params)
 test_loaders = [torch.utils.data.DataLoader(x, **data_loader_params) for x in test_set]
 
 # logs
+uniq_id = str(uuid4()).split("-")[0]
 if args.save_path:
-    save_path = args.save_path
+    save_path = args.save_path + uniq_id
 else:
-    uniq_id = str(uuid4()).split("-")[0]
     date = "_".join(time.asctime().split(" ")[:3])
     save_path = f"exp_{args.language}_{date}_{uniq_id}/"
 
@@ -256,10 +256,12 @@ def train():
     with open(log_path, 'a') as f:
         f.write(str(args)+'\n')
 
-    uni_id = "_".join(time.asctime().split(" ")[:3])
+    exp_date = "_".join(time.asctime().split(" ")[:3])
     mlflow.set_tracking_uri('http://0.0.0.0:5000')
-    mlflow.set_experiment(f"exp_{args.language}_{uni_id}")
-    with mlflow.start_run():
+    mlflow.set_experiment(f"exp_{args.language}_{exp_date}")
+
+    exp_id = mlflow.tracking.MlflowClient().get_experiment_by_name(f"exp_{args.language}_{date}").experiment_id
+    with mlflow.start_run(experiment_id=exp_id, run_name=uniq_id):
         # MLflow Tracking #0
         model_parameters = {"model-name": args.pretrained_model, "seed": args.epoch, "language": args.language,
                             "epochs": args.epoch, "learning-rate": args.lr, "sequence-length": args.sequence_length,
