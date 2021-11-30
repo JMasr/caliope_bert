@@ -3,49 +3,68 @@ import requests
 from transformers import *
 
 
+def download_file_from_google_drive(id_token, destination):
+    """
+    Download a file from Google Drive using its unique token `id` and write down in disk `destination`.
+    :param id_token: Token of the Google Drive file.
+    :type id_token: str
+    :param destination: path were the Google Drive file will be saved.
+    :type destination: str
+    :return: -
+    """
+
+    def get_confirm_token(response):
+        for key, value in response.cookies.items():
+            if key.startswith('download_warning'):
+                return value
+
+        return None
+
+    def save_response_content(response, path_to_save):
+        chunk_size = 32768
+        with open(path_to_save, "wb") as f:
+            for chunk in response.iter_content(chunk_size):
+                if chunk:  # filter out keep-alive new chunks
+                    f.write(chunk)
+
+    url = "https://docs.google.com/uc?export=download"
+    session = requests.Session()
+
+    resp = session.get(url, params={'id': id_token}, stream=True)
+    token = get_confirm_token(resp)
+
+    if token:
+        params = {'id': id_token, 'confirm': token}
+        resp = session.get(url, params=params, stream=True)
+
+    save_response_content(resp, destination)
+
+
+def check_for_models():
+    destination = '../models/berto'
+    if os.path.exists(destination) is False:
+        print("Download component...")
+        file_id = '1hE94i45QewBET3rXkgcCRNI40rS2_1eH'
+        download_file_from_google_drive(file_id, destination)
+
+    destination = destination.replace('berto', 'bertinho')
+    if os.path.exists(destination) is False:
+        print("Download component...")
+        file_id = '19RQOTxDdYxXyY92nPT-asuSNN_RyvOJZ'
+        download_file_from_google_drive(file_id, destination)
+
+
 def check_for_data_base(language=''):
-
-    def download_file_from_google_drive(id_token, dest):
-        """
-        Download a file from Google Drive using its unique token `id` and write down in disk `destination`.
-        :param id_token: Token of the Google Drive file.
-        :type id_token: str
-        :param dest: path were the Google Drive file will be saved.
-        :type dest: str
-        :return: -
-        """
-
-        def get_confirm_token(response):
-            for key, value in response.cookies.items():
-                if key.startswith('download_warning'):
-                    return value
-
-            return None
-
-        def save_response_content(response, path_to_save):
-            chunk_size = 32768
-            with open(path_to_save, "wb") as f:
-                for chunk in response.iter_content(chunk_size):
-                    if chunk:  # filter out keep-alive new chunks
-                        f.write(chunk)
-
-        url = "https://docs.google.com/uc?export=download"
-        session = requests.Session()
-
-        resp = session.get(url, params={'id': id_token}, stream=True)
-        token = get_confirm_token(resp)
-
-        if token:
-            params = {'id': id_token, 'confirm': token}
-            resp = session.get(url, params=params, stream=True)
-
-        save_response_content(resp, dest)
 
     file_id = ''
     destination = '../data/' + language + '/train'
     if os.path.exists(destination) is False:
         if language == 'gl':
             file_id = '1jfJwKpHT_h5sWBjrJuWJgVf_2er9Nf_8'
+        elif language == 'es':
+            file_id = ''
+        elif language == 'en':
+            file_id = ''
         print("Download TRAIN-SET")
         download_file_from_google_drive(file_id, destination)
 
@@ -53,6 +72,10 @@ def check_for_data_base(language=''):
     if os.path.exists(destination) is False:
         if language == 'gl':
             file_id = '1AhgwKEk03-9H7cDrbleljRvvEMUCLK2u'
+        elif language == 'es':
+            file_id = ''
+        elif language == 'en':
+            file_id = ''
         print("Download DEV-SET")
         download_file_from_google_drive(file_id, destination)
 
@@ -60,9 +83,12 @@ def check_for_data_base(language=''):
     if os.path.exists(destination) is False:
         if language == 'gl':
             file_id = '1W92EQGPk1XKhIRq15fVj_v6NEKGrnLId'
+        elif language == 'es':
+            file_id = ''
+        elif language == 'en':
+            file_id = ''
         print("Download TEST-SET")
         download_file_from_google_drive(file_id, destination)
-
 
 
 # special tokens indices in different models available in transformers
@@ -106,6 +132,7 @@ transformation_dict = {0: lambda x: x.lower(), 1: (lambda x: x + ','), 2: (lambd
 
 
 # pretrained model name: (model class, model tokenizer, output dimension, token style)
+check_for_models()
 MODELS = {
     'bert-base-uncased': (BertModel, BertTokenizer, 768, 'bert'),
     'bert-large-uncased': (BertModel, BertTokenizer, 1024, 'bert'),
