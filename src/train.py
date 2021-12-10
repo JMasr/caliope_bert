@@ -116,7 +116,8 @@ model_save_path = os.path.join(save_path, 'weights.pt')
 log_path = os.path.join(save_path, args.name + '_logs_.txt')
 
 # Model
-device = torch.device('cuda' if (args.cuda and torch.cuda.is_available()) else 'cpu')
+device = torch.device('cpu') if args.cuda == -1 else torch.device('cuda:' + str(args.cuda))
+
 print(F"+=============================+")
 print(f"|Loading BERT model using {str(device).upper()}|")
 print(F"+=============================+")

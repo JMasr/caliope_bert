@@ -6,7 +6,7 @@ def parse_arguments():
     # General arguments about the experiment (id, language, gpu-cpu, seed, useful directories
     parser.add_argument('--name', default='caliope_00', type=str, help='name of run')
     parser.add_argument('--language', default='gl', type=str, help='language, available options are gl, es, en')
-    parser.add_argument('--cuda', default=True, type=lambda x: (str(x).lower() == 'true'), help='use cuda if available')
+    parser.add_argument('--cuda', default=-1, type=int, help='-1 use cpu positive ints use cuda device')
     parser.add_argument('--seed', default=1, type=int, help='random seed')
     parser.add_argument('--data-path', default='../data/', type=str, help='path to train/dev/test datasets')
     parser.add_argument('--save-path', default='', type=str, help='model and log save directory')
@@ -24,7 +24,7 @@ def parse_arguments():
     parser.add_argument('--lstm-dim', default=-1, type=int,
                         help='hidden dimension in LSTM layer, if -1 is set equal to hidden dimension in language model')
 
-    parser.add_argument('--lr', default=5e-6, type=float, help='learning rate')
+    parser.add_argument('--lr', default=5e-7, type=float, help='learning rate')
     parser.add_argument('--decay', default=0, type=float, help='weight decay (default: 0)')
     parser.add_argument('--gradient-clip', default=1, type=float, help='gradient clipping (default: -1 i.e., none)')
     parser.add_argument('--loss-w', default=True, type=lambda x: (str(x).lower() == 'true'),
