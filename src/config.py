@@ -62,6 +62,8 @@ def check_for_data_base(language=''):
     if os.path.exists(destination) is False:
         if language == 'gl':
             file_id = '1jfJwKpHT_h5sWBjrJuWJgVf_2er9Nf_8'
+        elif language == 'gl_big':
+            file_id = ''
         elif language == 'es':
             file_id = ''
         elif language == 'en':
@@ -73,6 +75,8 @@ def check_for_data_base(language=''):
     if os.path.exists(destination) is False:
         if language == 'gl':
             file_id = '1AhgwKEk03-9H7cDrbleljRvvEMUCLK2u'
+        elif language == 'gl_big':
+            file_id = ''
         elif language == 'es':
             file_id = ''
         elif language == 'en':
@@ -84,6 +88,8 @@ def check_for_data_base(language=''):
     if os.path.exists(destination) is False:
         if language == 'gl':
             file_id = '1W92EQGPk1XKhIRq15fVj_v6NEKGrnLId'
+        elif language == 'gl_big':
+            file_id = ''
         elif language == 'es':
             file_id = ''
         elif language == 'en':

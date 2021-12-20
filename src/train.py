@@ -76,6 +76,21 @@ elif args.language == 'gl':
                            token_style=token_style, is_train=False)
     print("\ttest-set loaded")
     test_set = [test_set_ref]
+elif args.language == 'gl_big':
+    check_for_data_base('gl_big')
+    data_path = os.path.join(args.data_path, 'gl_big/train')
+    train_set = Dataset(data_path, data_tokenizer=tokenizer, sequence_len=sequence_len,
+                        token_style=token_style, is_train=True, augment_rate=ar, augment_type=aug_type)
+    print("\ttrain-set loaded")
+    data_path = data_path.replace('gl_big/train', 'gl_big/dev')
+    val_set = Dataset(data_path, data_tokenizer=tokenizer, sequence_len=sequence_len,
+                      token_style=token_style, is_train=False)
+    print("\tvalidation-set loaded")
+    data_path = data_path.replace('gl_big/dev', 'gl_big/test')
+    test_set_ref = Dataset(data_path, data_tokenizer=tokenizer, sequence_len=sequence_len,
+                           token_style=token_style, is_train=False)
+    print("\ttest-set loaded")
+    test_set = [test_set_ref]
 elif args.language == 'es':
     train_set = Dataset(os.path.join(args.data_path, 'es/train'), data_tokenizer=tokenizer, token_style=token_style,
                         sequence_len=sequence_len, is_train=True, augment_rate=ar, augment_type=aug_type)

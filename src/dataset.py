@@ -102,7 +102,8 @@ def making_datasets(raw_data, output_path, criteria=80, with_eval=True):
 
 def transform_data(file_path, output_path=''):
     if isinstance(file_path, str):
-        file_path = [file_path]
+        files = os.listdir(file_path)
+        file_path = [file_path + '/' + f for f in files]
 
     all_data = []
     for file in file_path:
@@ -187,11 +188,24 @@ def parse_data(file_path, d_tokenizer, sequence_len, token_style):
             attn_mask = [1 if token != TOKEN_IDX[token_style]['PAD'] else 0 for token in x]
             data_items.append([x, y, attn_mask, y_mask])
 
-    freq = list(set(sorted(dict_weight.values())))
+    freq = list(sorted(set(dict_weight.values())))
     freq = freq[0] if freq[0] != 0 else freq[1]
     weights = [freq/i if i != 0 else 0 for i in dict_weight.values()]
 
     return data_items, weights
+
+
+def calculate_distribution(data):
+    dict_weight = {}.fromkeys(punctuation_dict.keys(), 0)
+    for d in data:
+        element = d.strip().split("\t")
+        dict_weight[element[1]] += 1
+
+    freq = list(sorted(set(dict_weight.values())))
+    freq = freq[0] if freq[0] != 0 else freq[1]
+    weights = [freq / i if i != 0 else 0 for i in dict_weight.values()]
+
+    return weights
 
 
 class DatasetAllMemo(torch.utils.data.Dataset):
@@ -274,7 +288,7 @@ class Dataset(torch.utils.data.Dataset):
         """
         with open(files, 'r', encoding='utf-8') as f:
             self.raw_data = f.readlines()
-        self.tensor_weight = [6e-3, 1e-2, 1e-2, 1e-1, 3e-2, 8e-3, 0.5, 1.0, 1.0, 0.08, 0.35, 0.3]
+        self.tensor_weight = calculate_distribution(self.raw_data)
         self.tokenizer = data_tokenizer
         self.sequence_len = sequence_len
         self.augment_rate = augment_rate
