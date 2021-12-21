@@ -5,7 +5,10 @@ from augmentation import *
 from multiprocessing import Pool, cpu_count
 
 
-def seq_transformation(raw_data):
+def seq_transformation(raw_data, removelist=',.? '):
+    raw_data = re.sub(r'[^\w'+removelist+']', " ", raw_data)
+    raw_data = re.sub(r' +', " ", raw_data)
+    raw_data = raw_data.strip()
     data_output = ''
     if len(raw_data) > 2:
         for word in raw_data.split(" "):
@@ -44,7 +47,7 @@ def seq_transformation(raw_data):
     return data_output
 
 
-def making_datasets(raw_data, output_path, criteria=80, with_eval=True):
+def making_datasets(raw_data, output_path='', criteria=80, with_eval=True):
 
     if isinstance(raw_data, str):
         with open(raw_data, 'r') as f:
@@ -71,6 +74,9 @@ def making_datasets(raw_data, output_path, criteria=80, with_eval=True):
         print(f"| Size of EVAL-set : {len(eval_set)}  |")
         print(f"| Size of TEST-set : {len(test_set)}  |")
         print("+" + ("-" * (len(f"| Size of TRAIN-set: {len(train_set)} |") - 2)) + "+\n")
+
+        if output_path == '':
+            output_path = "/".join(raw_data.split("/")[:-1])
 
         os.makedirs(output_path, exist_ok=True)
         with open(output_path + "/train", 'x') as f:
@@ -100,12 +106,12 @@ def making_datasets(raw_data, output_path, criteria=80, with_eval=True):
         return train_set, test_set, eval_set
 
 
-def transform_data(file_path, output_path=''):
-    if isinstance(file_path, str):
-        files = os.listdir(file_path)
-        file_path = [file_path + '/' + f for f in files]
+def transform_data(file_path, output_path='', file=False):
+    if file:
+        file_path = [file_path]
+    else:
+        file_path = [file_path + '/' + f for f in os.listdir(file_path)]
 
-    all_data = []
     for file in file_path:
         data_raw = ''  # initialization is needed for multiprocessing
         with open(file, 'r', encoding='utf-8') as f:
@@ -120,15 +126,11 @@ def transform_data(file_path, output_path=''):
         pool.close()
         pool.join()
 
-        all_data.extend(data_raw)
+        if not output_path:
+            output_path = "/".join(file_path[0].split("/")[:-1]) + "/data_processed"
 
-    if not output_path:
-        output_path = "/".join(file_path[0].split("/")[:-1]) + "/data_processed"
-
-    with open(output_path, 'w', encoding="utf-8") as f:
-        f.write("".join(all_data))
-
-    return all_data
+        with open(output_path, 'a', encoding="utf-8") as f:
+            f.write("".join(data_raw))
 
 
 def parse_data(file_path, d_tokenizer, sequence_len, token_style):
@@ -339,6 +341,8 @@ class Dataset(torch.utils.data.Dataset):
             # -1 because we will have a special end of sequence token at the end
             while len(x) < self.sequence_len - 1 and idx < len(input_data):
                 word, punc = input_data[idx].strip().split('\t')
+                word = re.sub(r'[^\w\t\n]', "", word)
+                punc = re.sub(r'[^\w\t\n]', "", punc)
                 tokens = self.tokenizer.tokenize(word)
                 # if taking these tokens exceeds sequence length we finish current sequence with padding
                 # then start next sequence from this token
