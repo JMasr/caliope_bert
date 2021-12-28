@@ -47,14 +47,14 @@ def seq_transformation(raw_data, removelist=',.? '):
     return data_output
 
 
-def making_datasets(raw_data, output_path='', criteria=80, with_eval=True):
+def making_datasets(path_data, output_path='', criteria=80, with_eval=True):
 
-    if isinstance(raw_data, str):
-        with open(raw_data, 'r') as f:
+    raw_data = []
+    if isinstance(path_data, str):
+        with open(path_data, 'r') as f:
             raw_data = f.readlines()
-    elif not isinstance(raw_data, list):
+    elif not isinstance(path_data, list):
         raise ValueError('Incorrect type for Dataset')
-
     data_amount = len(raw_data)
 
     first_cut = int(data_amount * (criteria / 100)) - 1
@@ -76,7 +76,7 @@ def making_datasets(raw_data, output_path='', criteria=80, with_eval=True):
         print("+" + ("-" * (len(f"| Size of TRAIN-set: {len(train_set)} |") - 2)) + "+\n")
 
         if output_path == '':
-            output_path = "/".join(raw_data.split("/")[:-1])
+            output_path = "/".join(path_data.split("/")[:-1])
 
         os.makedirs(output_path, exist_ok=True)
         with open(output_path + "/train", 'x') as f:
@@ -392,3 +392,6 @@ class Dataset(torch.utils.data.Dataset):
         y_mask = torch.tensor(y_mask)
 
         return x, y, attn_mask, y_mask
+
+
+making_datasets("../data/gl_big/train_big")
