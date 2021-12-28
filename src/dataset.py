@@ -51,6 +51,7 @@ def making_datasets(path_data, output_path='', criteria=80, with_eval=True):
 
     raw_data = []
     if isinstance(path_data, str):
+        print("Reading data")
         with open(path_data, 'r') as f:
             raw_data = f.readlines()
     elif not isinstance(path_data, list):
