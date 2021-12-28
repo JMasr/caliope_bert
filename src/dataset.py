@@ -291,7 +291,7 @@ class Dataset(torch.utils.data.Dataset):
         """
         with open(files, 'r', encoding='utf-8') as f:
             self.raw_data = f.readlines()
-        self.tensor_weight = calculate_distribution(self.raw_data[sequence_len * batch_size])
+        self.tensor_weight = calculate_distribution(self.raw_data[:sequence_len * batch_size])
         self.tokenizer = data_tokenizer
         self.sequence_len = sequence_len
         self.augment_rate = augment_rate
@@ -343,7 +343,7 @@ class Dataset(torch.utils.data.Dataset):
             while len(x) < self.sequence_len - 1 and idx < len(input_data):
                 word, punc = input_data[idx].strip().split('\t')
                 word = re.sub(r'[^\w\t\n]', "", word)
-                punc = re.sub(r'[^\w\t\n]', "", punc)
+                punc = re.sub(r'[^\w\t\n+]', "", punc)
                 tokens = self.tokenizer.tokenize(word)
                 # if taking these tokens exceeds sequence length we finish current sequence with padding
                 # then start next sequence from this token
@@ -393,6 +393,3 @@ class Dataset(torch.utils.data.Dataset):
         y_mask = torch.tensor(y_mask)
 
         return x, y, attn_mask, y_mask
-
-
-making_datasets("../data/gl_big/train_big")

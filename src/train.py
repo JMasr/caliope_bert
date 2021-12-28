@@ -298,7 +298,7 @@ def train():
         # MLflow Tracking - end #
 
         batch_norm = []
-        best_val_acc = 0
+        best_val_acc = -1
         for epoch in range(args.epoch):
             train_loss = 0.0
             train_iteration = 0
