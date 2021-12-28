@@ -50,56 +50,58 @@ print("| Loading data ... |")
 print("+------------------+")
 if args.language == 'en':
     train_set = Dataset(os.path.join(args.data_path, 'en/train2012'), data_tokenizer=tokenizer, token_style=token_style,
-                        sequence_len=sequence_len,  is_train=True, augment_rate=ar, augment_type=aug_type)
+                        sequence_len=sequence_len, batch_size=args.batch_size, is_train=True,
+                        augment_rate=ar, augment_type=aug_type)
     print("\ttrain-set loaded")
     val_set = Dataset(os.path.join(args.data_path, 'en/dev2012'), data_tokenizer=tokenizer, sequence_len=sequence_len,
-                      token_style=token_style, is_train=False)
+                      batch_size=args.batch_size, token_style=token_style, is_train=False)
     print("\tvalidation-set loaded")
     test_set_ref = Dataset(os.path.join(args.data_path, 'en/test2011'), data_tokenizer=tokenizer, is_train=False,
-                           sequence_len=sequence_len, token_style=token_style)
+                           sequence_len=sequence_len, batch_size=args.batch_size, token_style=token_style)
     test_set_asr = Dataset(os.path.join(args.data_path, 'en/test2011asr'), data_tokenizer=tokenizer, is_train=False,
-                           sequence_len=sequence_len, token_style=token_style)
+                           sequence_len=sequence_len, batch_size=args.batch_size, token_style=token_style)
     test_set = [val_set, test_set_ref, test_set_asr]
     print("\ttest-set loaded")
 elif args.language == 'gl':
     check_for_data_base('gl')
     data_path = os.path.join(args.data_path, 'gl/train')
-    train_set = Dataset(data_path, data_tokenizer=tokenizer, sequence_len=sequence_len,
+    train_set = Dataset(data_path, data_tokenizer=tokenizer, sequence_len=sequence_len, batch_size=args.batch_size,
                         token_style=token_style, is_train=True, augment_rate=ar, augment_type=aug_type)
     print("\ttrain-set loaded")
     data_path = data_path.replace('gl/train', 'gl/dev')
-    val_set = Dataset(data_path, data_tokenizer=tokenizer, sequence_len=sequence_len,
+    val_set = Dataset(data_path, data_tokenizer=tokenizer, sequence_len=sequence_len, batch_size=args.batch_size,
                       token_style=token_style, is_train=False)
     print("\tvalidation-set loaded")
     data_path = data_path.replace('gl/dev', 'gl/test')
-    test_set_ref = Dataset(data_path, data_tokenizer=tokenizer, sequence_len=sequence_len,
+    test_set_ref = Dataset(data_path, data_tokenizer=tokenizer, sequence_len=sequence_len, batch_size=args.batch_size,
                            token_style=token_style, is_train=False)
     print("\ttest-set loaded")
     test_set = [test_set_ref]
 elif args.language == 'gl_big':
     check_for_data_base('gl_big')
     data_path = os.path.join(args.data_path, 'gl_big/train')
-    train_set = Dataset(data_path, data_tokenizer=tokenizer, sequence_len=sequence_len,
+    train_set = Dataset(data_path, data_tokenizer=tokenizer, sequence_len=sequence_len, batch_size=args.batch_size,
                         token_style=token_style, is_train=True, augment_rate=ar, augment_type=aug_type)
     print("\ttrain-set loaded")
     data_path = data_path.replace('gl_big/train', 'gl_big/dev')
-    val_set = Dataset(data_path, data_tokenizer=tokenizer, sequence_len=sequence_len,
+    val_set = Dataset(data_path, data_tokenizer=tokenizer, sequence_len=sequence_len, batch_size=args.batch_size,
                       token_style=token_style, is_train=False)
     print("\tvalidation-set loaded")
     data_path = data_path.replace('gl_big/dev', 'gl_big/test')
-    test_set_ref = Dataset(data_path, data_tokenizer=tokenizer, sequence_len=sequence_len,
+    test_set_ref = Dataset(data_path, data_tokenizer=tokenizer, sequence_len=sequence_len, batch_size=args.batch_size,
                            token_style=token_style, is_train=False)
     print("\ttest-set loaded")
     test_set = [test_set_ref]
 elif args.language == 'es':
     train_set = Dataset(os.path.join(args.data_path, 'es/train'), data_tokenizer=tokenizer, token_style=token_style,
-                        sequence_len=sequence_len, is_train=True, augment_rate=ar, augment_type=aug_type)
+                        sequence_len=sequence_len, is_train=True, batch_size=args.batch_size,
+                        augment_rate=ar, augment_type=aug_type)
     print("\ttrain-set loaded")
     val_set = Dataset(os.path.join(args.data_path, 'es/dev'), data_tokenizer=tokenizer, sequence_len=sequence_len,
-                      token_style=token_style, is_train=False)
+                      batch_size=args.batch_size, token_style=token_style, is_train=False)
     print("\tdev-set loaded")
     test_set_ref = Dataset(os.path.join(args.data_path, 'es/test'), data_tokenizer=tokenizer, token_style=token_style,
-                           sequence_len=sequence_len, is_train=False)
+                           sequence_len=sequence_len, batch_size=args.batch_size, is_train=False)
     test_set = [test_set_ref]
     print("\ttest-set loaded")
 else:

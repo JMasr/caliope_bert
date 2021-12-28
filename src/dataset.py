@@ -197,9 +197,9 @@ def parse_data(file_path, d_tokenizer, sequence_len, token_style):
     return data_items, weights
 
 
-def calculate_distribution(data):
-    dict_weight = {}.fromkeys(punctuation_dict.keys(), 0)
-    for d in data:
+def calculate_distribution(batch_data):
+    dict_weight = {}.fromkeys(punctuation_dict.keys(), 1)
+    for d in batch_data:
         element = d.strip().split("\t")
         dict_weight[element[1]] += 1
 
@@ -277,8 +277,8 @@ class DatasetAllMemo(torch.utils.data.Dataset):
 
 
 class Dataset(torch.utils.data.Dataset):
-    def __init__(self, files, data_tokenizer, sequence_len, token_style, is_train=False, augment_rate=0.1,
-                 augment_type='substitute'):
+    def __init__(self, files, data_tokenizer, sequence_len, token_style, batch_size, is_train=False,
+                 augment_rate=0.1, augment_type='substitute'):
         """
 
         :param files: single file containing tokens and punctuations separated by tab in lines
@@ -290,7 +290,7 @@ class Dataset(torch.utils.data.Dataset):
         """
         with open(files, 'r', encoding='utf-8') as f:
             self.raw_data = f.readlines()
-        self.tensor_weight = calculate_distribution(self.raw_data)
+        self.tensor_weight = calculate_distribution(self.raw_data[sequence_len * batch_size])
         self.tokenizer = data_tokenizer
         self.sequence_len = sequence_len
         self.augment_rate = augment_rate
