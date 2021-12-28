@@ -129,7 +129,10 @@ TOKEN_IDX = {
 # 'O' -> No punctuation
 punctuation_dict = {'O': 0, 'COMMA': 1, 'PERIOD': 2, 'QUESTION': 3, 'ALL_CAPITAL': 4, 'FRITS_CAPITAL': 5,
                     'ALL_CAPITAL+COMMA': 6, 'ALL_CAPITAL+PERIOD': 7, 'ALL_CAPITAL+QUESTION': 8,
-                    'FRITS_CAPITAL+COMMA': 9, 'FRITS_CAPITAL+PERIOD': 10, 'FRITS_CAPITAL+QUESTION': 11}
+                    'FRITS_CAPITAL+COMMA': 9, 'FRITS_CAPITAL+PERIOD': 10, 'FRITS_CAPITAL+QUESTION': 11,
+                    'ALL_CAPITALCOMMA': 6, 'ALL_CAPITALPERIOD': 7, 'ALL_CAPITALQUESTION': 8,
+                    'FRITS_CAPITALCOMMA': 9, 'FRITS_CAPITALPERIOD': 10, 'FRITS_CAPITALQUESTION': 11
+                    }
 
 transformation_dict = {0: lambda x: x.lower(), 1: (lambda x: x + ','), 2: (lambda x: x + '.'), 3: (lambda x: x + '?'),
                        4: lambda x: x.upper(), 5: (lambda x: x[0].upper() + x[1:]), 6: (lambda x: x.upper() + ','),
