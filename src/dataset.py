@@ -393,3 +393,6 @@ class Dataset(torch.utils.data.Dataset):
         y_mask = torch.tensor(y_mask)
 
         return x, y, attn_mask, y_mask
+
+
+making_datasets('../data/gl_big/all_data')
