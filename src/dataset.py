@@ -1,5 +1,6 @@
 import torch
 import regex as re
+
 from config import *
 from augmentation import *
 from multiprocessing import Pool, cpu_count
@@ -152,13 +153,13 @@ def parse_data(file_path, d_tokenizer, sequence_len, token_style):
         # loop until end of the entire text
         idx = 0
         while idx < len(lines):
-            x = [TOKEN_IDX[token_style]['START_SEQ']]
+            x_ = [TOKEN_IDX[token_style]['START_SEQ']]
             y = [0]
             y_mask = [1]  # which positions we need to consider while evaluating i.e., ignore pad or sub tokens
 
             # loop until we have required sequence length
             # -1 because we will have a special end of sequence token at the end
-            while len(x) < sequence_len - 1 and idx < len(lines):
+            while len(x_) < sequence_len - 1 and idx < len(lines):
 
                 word, punc = lines[idx].strip().split('\t')
                 tokens = d_tokenizer.tokenize(word)
@@ -167,29 +168,29 @@ def parse_data(file_path, d_tokenizer, sequence_len, token_style):
 
                 # if taking these tokens exceeds sequence length we finish current sequence with padding
                 # then start next sequence from this token
-                if len(tokens) + len(x) >= sequence_len:
+                if len(tokens) + len(x_) >= sequence_len:
                     break
                 else:
                     for i in range(len(tokens) - 1):
-                        x.append(d_tokenizer.convert_tokens_to_ids(tokens[i]))
+                        x_.append(d_tokenizer.convert_tokens_to_ids(tokens[i]))
                         y.append(0)
                         y_mask.append(0)
                     if len(tokens) > 0:
-                        x.append(d_tokenizer.convert_tokens_to_ids(tokens[-1]))
+                        x_.append(d_tokenizer.convert_tokens_to_ids(tokens[-1]))
                     else:
-                        x.append(TOKEN_IDX[token_style]['UNK'])
+                        x_.append(TOKEN_IDX[token_style]['UNK'])
                     y.append(punctuation_dict[punc])
                     y_mask.append(1)
                     idx += 1
-            x.append(TOKEN_IDX[token_style]['END_SEQ'])
+            x_.append(TOKEN_IDX[token_style]['END_SEQ'])
             y.append(0)
             y_mask.append(1)
-            if len(x) < sequence_len:
-                x = x + [TOKEN_IDX[token_style]['PAD'] for _ in range(sequence_len - len(x))]
+            if len(x_) < sequence_len:
+                x_ = x_ + [TOKEN_IDX[token_style]['PAD'] for _ in range(sequence_len - len(x_))]
                 y = y + [0 for _ in range(sequence_len - len(y))]
                 y_mask = y_mask + [0 for _ in range(sequence_len - len(y_mask))]
-            attn_mask = [1 if token != TOKEN_IDX[token_style]['PAD'] else 0 for token in x]
-            data_items.append([x, y, attn_mask, y_mask])
+            attn_mask = [1 if token != TOKEN_IDX[token_style]['PAD'] else 0 for token in x_]
+            data_items.append([x_, y, attn_mask, y_mask])
 
     freq = list(sorted(set(dict_weight.values())))
     freq = freq[0] if freq[0] != 0 else freq[1]
@@ -198,17 +199,25 @@ def parse_data(file_path, d_tokenizer, sequence_len, token_style):
     return data_items, weights
 
 
-def calculate_distribution(batch_data):
-    dict_weight = {}.fromkeys(punctuation_dict.keys(), 1)
-    for d in batch_data:
-        element = d.strip().split("\t")
-        dict_weight[element[1]] += 1
+def aux_calculate_distribution(batch_data_p):
+    dict_weight_p = {}.fromkeys(punctuation_dict.keys(), 0)
+    for d_p in batch_data_p:
+        element_p = d_p.strip().split("\t")
+        dict_weight_p[element_p[1]] += 1
 
-    freq = list(sorted(set(dict_weight.values())))
-    freq = freq[0] if freq[0] != 0 else freq[1]
-    weights = [freq / i if i != 0 else 0 for i in dict_weight.values()]
+    freq_p = list(sorted(set(dict_weight_p.values())))
+    freq_p = freq_p[0] if freq_p[0] != 0 else freq_p[1]
+    weights_p = np.asanyarray([freq_p / i if i != 0 else 0 for i in dict_weight_p.values()])
+    return weights_p
 
-    return weights
+
+def calculate_distribution(all_batch_data):
+    pool = Pool(processes=cpu_count())
+    weights_p = pool.map(aux_calculate_distribution, all_batch_data)
+    pool.close()
+    pool.join()
+
+    return np.asanyarray(weights_p, np.float32).mean(0)
 
 
 class DatasetAllMemo(torch.utils.data.Dataset):
@@ -233,16 +242,16 @@ class DatasetAllMemo(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.data)
 
-    def _augment(self, x, y, y_mask):
+    def _augment(self, x_, y, y_mask):
         x_aug = []
         y_aug = []
         y_mask_aug = []
-        for i in range(len(x)):
+        for i in range(len(x_)):
             r = np.random.rand()
             if r < self.augment_rate:
-                AUGMENTATIONS[self.augment_type](x, y, y_mask, x_aug, y_aug, y_mask_aug, i, self.token_style)
+                AUGMENTATIONS[self.augment_type](x_, y, y_mask, x_aug, y_aug, y_mask_aug, i, self.token_style)
             else:
-                x_aug.append(x[i])
+                x_aug.append(x_[i])
                 y_aug.append(y[i])
                 y_mask_aug.append(y_mask[i])
 
@@ -257,24 +266,24 @@ class DatasetAllMemo(torch.utils.data.Dataset):
             y_aug = y_aug + [0 for _ in range(self.sequence_len - len(y_aug))]
             y_mask_aug = y_mask_aug + [0 for _ in range(self.sequence_len - len(y_mask_aug))]
 
-        attn_mask = [1 if token != TOKEN_IDX[self.token_style]['PAD'] else 0 for token in x]
+        attn_mask = [1 if token != TOKEN_IDX[self.token_style]['PAD'] else 0 for token in x_]
         return x_aug, y_aug, attn_mask, y_mask_aug
 
     def __getitem__(self, index):
-        x = self.data[index][0]
+        x_ = self.data[index][0]
         y = self.data[index][1]
         attn_mask = self.data[index][2]
         y_mask = self.data[index][3]
 
         if self.is_train and self.augment_rate > 0:
-            x, y, attn_mask, y_mask = self._augment(x, y, y_mask)
+            x_, y, attn_mask, y_mask = self._augment(x_, y, y_mask)
 
-        x = torch.tensor(x)
+        x_ = torch.tensor(x_)
         y = torch.tensor(y)
         attn_mask = torch.tensor(attn_mask)
         y_mask = torch.tensor(y_mask)
 
-        return x, y, attn_mask, y_mask
+        return x_, y, attn_mask, y_mask
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -291,7 +300,9 @@ class Dataset(torch.utils.data.Dataset):
         """
         with open(files, 'r', encoding='utf-8') as f:
             self.raw_data = f.readlines()
-        self.tensor_weight = calculate_distribution(self.raw_data[:sequence_len * batch_size])
+        chunk_size = sequence_len * batch_size
+        chunks = [self.raw_data[i:i + chunk_size] for i in range(0, len(self.raw_data), chunk_size)]
+        self.tensor_weight = calculate_distribution(chunks)
         self.tokenizer = data_tokenizer
         self.sequence_len = sequence_len
         self.augment_rate = augment_rate
@@ -302,16 +313,16 @@ class Dataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.raw_data)//self.sequence_len
 
-    def _augment(self, x, y, y_mask):
+    def _augment(self, x_, y, y_mask):
         x_aug = []
         y_aug = []
         y_mask_aug = []
-        for i in range(len(x)):
+        for i in range(len(x_)):
             r = np.random.rand()
             if r < self.augment_rate:
-                AUGMENTATIONS[self.augment_type](x, y, y_mask, x_aug, y_aug, y_mask_aug, i, self.token_style)
+                AUGMENTATIONS[self.augment_type](x_, y, y_mask, x_aug, y_aug, y_mask_aug, i, self.token_style)
             else:
-                x_aug.append(x[i])
+                x_aug.append(x_[i])
                 y_aug.append(y[i])
                 y_mask_aug.append(y_mask[i])
 
@@ -326,51 +337,51 @@ class Dataset(torch.utils.data.Dataset):
             y_aug = y_aug + [0 for _ in range(self.sequence_len - len(y_aug))]
             y_mask_aug = y_mask_aug + [0 for _ in range(self.sequence_len - len(y_mask_aug))]
 
-        attn_mask = [1 if token != TOKEN_IDX[self.token_style]['PAD'] else 0 for token in x]
+        attn_mask = [1 if token != TOKEN_IDX[self.token_style]['PAD'] else 0 for token in x_]
         return x_aug, y_aug, attn_mask, y_mask_aug
 
     def new_parse_data(self, input_data):
-        x, y, attn_mask, y_mask = [], [], [], []
+        x_, y, attn_mask, y_mask = [], [], [], []
         idx = 0
         # loop until end of the entire text
         while idx < len(input_data):
-            x = [TOKEN_IDX[self.token_style]['START_SEQ']]
+            x_ = [TOKEN_IDX[self.token_style]['START_SEQ']]
             y = [0]
             y_mask = [1]  # which positions we need to consider while evaluating i.e., ignore pad or sub tokens
 
             # loop until we have required sequence length
             # -1 because we will have a special end of sequence token at the end
-            while len(x) < self.sequence_len - 1 and idx < len(input_data):
+            while len(x_) < self.sequence_len - 1 and idx < len(input_data):
                 word, punc = input_data[idx].strip().split('\t')
                 word = re.sub(r'[^\w\t\n]', "", word)
                 punc = re.sub(r'[^\w\t\n+]', "", punc)
                 tokens = self.tokenizer.tokenize(word)
                 # if taking these tokens exceeds sequence length we finish current sequence with padding
                 # then start next sequence from this token
-                if len(tokens) + len(x) >= self.sequence_len:
+                if len(tokens) + len(x_) >= self.sequence_len:
                     break
                 else:
                     for i in range(len(tokens) - 1):
-                        x.append(self.tokenizer.convert_tokens_to_ids(tokens[i]))
+                        x_.append(self.tokenizer.convert_tokens_to_ids(tokens[i]))
                         y.append(0)
                         y_mask.append(0)
 
                     if len(tokens) > 0:
-                        x.append(self.tokenizer.convert_tokens_to_ids(tokens[-1]))
+                        x_.append(self.tokenizer.convert_tokens_to_ids(tokens[-1]))
                     else:
-                        x.append(TOKEN_IDX[self.token_style]['UNK'])
+                        x_.append(TOKEN_IDX[self.token_style]['UNK'])
                     y.append(punctuation_dict[punc])
                     y_mask.append(1)
                     idx += 1
-            x.append(TOKEN_IDX[self.token_style]['END_SEQ'])
+            x_.append(TOKEN_IDX[self.token_style]['END_SEQ'])
             y.append(0)
             y_mask.append(1)
-            if len(x) < self.sequence_len:
-                x = x + [TOKEN_IDX[self.token_style]['PAD'] for _ in range(self.sequence_len - len(x))]
+            if len(x_) < self.sequence_len:
+                x_ = x_ + [TOKEN_IDX[self.token_style]['PAD'] for _ in range(self.sequence_len - len(x_))]
                 y = y + [0 for _ in range(self.sequence_len - len(y))]
                 y_mask = y_mask + [0 for _ in range(self.sequence_len - len(y_mask))]
-            attn_mask = [1 if token != TOKEN_IDX[self.token_style]['PAD'] else 0 for token in x]
-        return [x, y, attn_mask, y_mask]
+            attn_mask = [1 if token != TOKEN_IDX[self.token_style]['PAD'] else 0 for token in x_]
+        return [x_, y, attn_mask, y_mask]
 
     def __getitem__(self, index):
         if index < len(self.raw_data):
@@ -379,17 +390,17 @@ class Dataset(torch.utils.data.Dataset):
             data_item = self.raw_data[index:]
 
         data_item = self.new_parse_data(data_item)
-        x = data_item[0]
+        x_ = data_item[0]
         y = data_item[1]
         attn_mask = data_item[2]
         y_mask = data_item[3]
 
         if self.is_train and self.augment_rate > 0:
-            x, y, attn_mask, y_mask = self._augment(x, y, y_mask)
+            x_, y, attn_mask, y_mask = self._augment(x_, y, y_mask)
 
-        x = torch.tensor(x)
+        x_ = torch.tensor(x_)
         y = torch.tensor(y)
         attn_mask = torch.tensor(attn_mask)
         y_mask = torch.tensor(y_mask)
 
-        return x, y, attn_mask, y_mask
+        return x_, y, attn_mask, y_mask
