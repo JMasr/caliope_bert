@@ -10,12 +10,14 @@ import numpy as np
 from tqdm import tqdm
 from uuid import uuid4
 
+import augmentation
+from config import *
 from argparser import parse_arguments
+
 from dataset import Dataset
 from dataset import cpu_count
 from model import DeepPunctuation, DeepPunctuationCRF
-from config import *
-import augmentation
+
 
 torch.multiprocessing.set_sharing_strategy('file_system')   # https://github.com/pytorch/pytorch/issues/11201
 
@@ -35,14 +37,15 @@ elif 'bertinho' in args.pretrained_model:
 else:
     tokenizer = MODELS[args.pretrained_model][1].from_pretrained(args.pretrained_model)
 
+aug_type = args.augment_type
 augmentation.tokenizer = tokenizer
 augmentation.sub_style = args.sub_style
 augmentation.alpha_sub = args.alpha_sub
 augmentation.alpha_del = args.alpha_del
+
 token_style = MODELS[args.pretrained_model][3]
 ar = args.augment_rate
 sequence_len = args.sequence_length
-aug_type = args.augment_type
 
 # Datasets
 print("+==================+")
@@ -206,11 +209,12 @@ def validate(data_loader):
         fp[-1] = np.sum(fp[1:])
         fn[-1] = np.sum(fn[1:])
 
-        global_loss = val_loss/num_iteration
         accuracy = correct/total
         precision = tp / (tp + fp) if (tp + fp).any() else 0
         recall = tp / (tp + fn) if (tp + fn).any() else 0
         f1 = 2 * precision * recall / (precision + recall) if (precision + recall).any() else 0
+
+        global_loss = val_loss / num_iteration
 
     return accuracy, global_loss, np.nan_to_num(precision), np.nan_to_num(recall), np.nan_to_num(f1), cm
 
@@ -281,7 +285,7 @@ def train():
     exp_id = mlflow.tracking.MlflowClient().get_experiment_by_name(f"exp_{args.language}_{date}").experiment_id
     with mlflow.start_run(experiment_id=exp_id, run_name=uniq_id):
         # MLflow Tracking #0
-        model_parameters = {"model-name": args.pretrained_model, "seed": args.epoch, "language": args.language,
+        model_parameters = {"model-name": args.pretrained_model, "seed": args.seed, "language": args.language,
                             "epochs": args.epoch, "learning-rate": args.lr, "sequence-length": args.sequence_length,
                             "batch-size": args.batch_size, "lstm-dim": args.lstm_dim,
                             "loss-weighted": t_weight, "crf": args.use_crf, "weight-decay": args.decay,
@@ -348,7 +352,7 @@ def train():
             train_acc = correct / total
             train_loss /= train_iteration
 
-            log = 'epoch: {}, Train loss: {}, Train accuracy: {}'.format(epoch, train_loss, train_acc)
+            log = f'epoch: {epoch}, Train loss: {train_loss}, Train accuracy: {train_acc}'
             # MLflow Tracking#
             train_metrics = {"train_loss": train_loss, "train_accuracy": train_acc, "GradientNorm": np.mean(batch_norm)}
             mlflow.log_metrics(train_metrics, step=epoch + 1)
@@ -375,23 +379,23 @@ def train():
                 torch.save(deep_punctuation.state_dict(), model_save_path)
 
             # MLflow Tracking #
-            val_metrics = {"eval_loss": val_loss, "val_accuracy": val_acc,
-                           "P_Lower": val_precision[0], "P_Lower-Comma": val_precision[1],
-                           "P_Lower-Period": val_precision[2], "P_All-Capital": val_precision[4],
-                           "P_Frits-Capital": val_precision[5], "P_All-Capital-Comma": val_precision[6],
-                           "P_All-Capital-Period": val_precision[7], "P_Frits-Capital-Comma": val_precision[9],
-                           "P_Frits-Capital-Period": val_precision[10],
-                           #
-                           "R_Lower": val_recall[0], "R_Lower-Comma": val_recall[1], "R_Lower-Period": val_recall[2],
-                           "R_All-Capital": val_recall[4], "R_Frits-Capital": val_recall[5],
-                           "R_All-Capital-Comma": val_recall[6], "R_All-Capital-Period": val_recall[7],
-                           "R_Frits-Capital-Comma": val_recall[9], "R_Frits-Capital-Period": val_recall[10],
-                           #
-                           "F1_Lower": val_f1[0], "F1_Lower-Comma": val_f1[1], "F1_Lower-Period": val_f1[2],
-                           "F1_All-Capital": val_f1[4], "F1_Frits-Capital": val_f1[5],
-                           "F1_All-Capital-Comma": val_f1[6], "F1_All-Capital-Period": val_f1[7],
-                           "F1_Frits-Capital-Comma": val_f1[9], "F1_Frits-Capital-Period": val_f1[10],
-                           }
+                val_metrics = {"eval_loss": val_loss, "val_accuracy": val_acc,
+                               "P_Lower": val_precision[0], "P_Lower-Comma": val_precision[1],
+                               "P_Lower-Period": val_precision[2], "P_All-Capital": val_precision[4],
+                               "P_Frits-Capital": val_precision[5], "P_All-Capital-Comma": val_precision[6],
+                               "P_All-Capital-Period": val_precision[7], "P_Frits-Capital-Comma": val_precision[9],
+                               "P_Frits-Capital-Period": val_precision[10],
+                               #
+                               "R_Lower": val_recall[0], "R_Lower-Comma": val_recall[1], "R_Lower-Period": val_recall[2],
+                               "R_All-Capital": val_recall[4], "R_Frits-Capital": val_recall[5],
+                               "R_All-Capital-Comma": val_recall[6], "R_All-Capital-Period": val_recall[7],
+                               "R_Frits-Capital-Comma": val_recall[9], "R_Frits-Capital-Period": val_recall[10],
+                               #
+                               "F1_Lower": val_f1[0], "F1_Lower-Comma": val_f1[1], "F1_Lower-Period": val_f1[2],
+                               "F1_All-Capital": val_f1[4], "F1_Frits-Capital": val_f1[5],
+                               "F1_All-Capital-Comma": val_f1[6], "F1_All-Capital-Period": val_f1[7],
+                               "F1_Frits-Capital-Comma": val_f1[9], "F1_Frits-Capital-Period": val_f1[10],
+                               }
 
             mlflow.log_metrics(val_metrics, step=epoch + 1)
 

@@ -353,26 +353,30 @@ class Dataset(torch.utils.data.Dataset):
             # -1 because we will have a special end of sequence token at the end
             while len(x_) < self.sequence_len - 1 and idx < len(input_data):
                 word, punc = input_data[idx].strip().split('\t')
-                word = re.sub(r'[^\w\t\n]', "", word)
-                punc = re.sub(r'[^\w\t\n+]', "", punc)
-                tokens = self.tokenizer.tokenize(word)
-                # if taking these tokens exceeds sequence length we finish current sequence with padding
-                # then start next sequence from this token
-                if len(tokens) + len(x_) >= self.sequence_len:
-                    break
-                else:
-                    for i in range(len(tokens) - 1):
-                        x_.append(self.tokenizer.convert_tokens_to_ids(tokens[i]))
-                        y.append(0)
-                        y_mask.append(0)
-
-                    if len(tokens) > 0:
-                        x_.append(self.tokenizer.convert_tokens_to_ids(tokens[-1]))
+                if word and punc:
+                    word = re.sub(r'[^\w\t\n]', "", word)
+                    punc = re.sub(r'[^\w\t\n+]', "", punc)
+                    tokens = self.tokenizer.tokenize(word)
+                    # if taking these tokens exceeds sequence length we finish current sequence with padding
+                    # then start next sequence from this token
+                    if len(tokens) + len(x_) >= self.sequence_len:
+                        break
                     else:
-                        x_.append(TOKEN_IDX[self.token_style]['UNK'])
-                    y.append(punctuation_dict[punc])
-                    y_mask.append(1)
-                    idx += 1
+                        for i in range(len(tokens) - 1):
+                            x_.append(self.tokenizer.convert_tokens_to_ids(tokens[i]))
+                            y.append(0)
+                            y_mask.append(0)
+
+                        if len(tokens) > 0:
+                            x_.append(self.tokenizer.convert_tokens_to_ids(tokens[-1]))
+                        else:
+                            x_.append(TOKEN_IDX[self.token_style]['UNK'])
+                        y.append(punctuation_dict[punc])
+                        y_mask.append(1)
+                        idx += 1
+                else:
+                    continue
+
             x_.append(TOKEN_IDX[self.token_style]['END_SEQ'])
             y.append(0)
             y_mask.append(1)

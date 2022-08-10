@@ -6,7 +6,7 @@ def parse_arguments():
     # General arguments about the experiment (id, language, gpu-cpu, seed, useful directories
     parser.add_argument('--name', default='caliope_00', type=str, help='name of run')
     parser.add_argument('--language', default='gl', type=str, help='language, available options are gl, es, en')
-    parser.add_argument('--cuda', default=-1, type=int, help='-1 use cpu positive ints use cuda device')
+    parser.add_argument('--cuda', default=0, type=int, help='-1 use cpu positive ints use cuda device')
     parser.add_argument('--seed', default=1, type=int, help='random seed')
     parser.add_argument('--data-path', default='../data/', type=str, help='path to train/dev/test datasets')
     parser.add_argument('--save-path', default='', type=str, help='model and log save directory')
@@ -17,7 +17,7 @@ def parse_arguments():
     parser.add_argument('--use-crf', default=False, type=lambda x: (str(x).lower() == 'true'),
                         help='whether to use CRF layer or not')
 
-    parser.add_argument('--epoch', default=10, type=int, help='total epochs (default: 10)')
+    parser.add_argument('--epoch', default=25, type=int, help='total epochs (default: 10)')
     parser.add_argument('--sequence-length', default=256, type=int,
                         help='sequence length to use when preparing dataset (default 256)')
     parser.add_argument('--batch-size', default=8, type=int, help='batch size (default: 8)')
