@@ -1,9 +1,109 @@
+import pathlib
+import time
+import os
+import sys
+import mmap
+
 import torch
 import regex as re
 
 from config import *
 from augmentation import *
+
+from tqdm import tqdm
 from multiprocessing import Pool, cpu_count
+from concurrent.futures import ThreadPoolExecutor
+
+
+def read_file(file_path: str):
+    """
+        Read files and return a list where each element is a line of the files.
+
+        Arguments:
+        ----------
+        path_to_directory: path to the files.
+
+        Return:
+        -------
+        list where each element is one line of the files.
+        The order of files is random but the content of each files is linear.
+    """
+
+    data_file, tot = [], 0
+    fsize = pathlib.Path(file_path).stat().st_size
+
+    print(f"processing {file_path}")
+    with open(file_path, "r+b") as fp:
+        with tqdm(total=fsize, desc=file_path) as pbar:
+            mm = mmap.mmap(fp.fileno(), 0)
+            for line in iter(mm.readline, b""):
+                term = line.decode("utf-8")
+                data_file.append(term)
+
+                # update the progress bar
+                tot += len(line)
+                pbar.update(tot - pbar.n)
+            mm.close()
+
+    return data_file
+
+
+def read_files(path_to_directory: str):
+    """
+        Read files and return a list where each element is a line of the files.
+
+        Arguments:
+        ----------
+        path_to_directory: path to the files.
+
+        Return:
+        -------
+        list where each element is one line of the files.
+        The order of files is random but the content of each files is linear.
+    """
+
+    if not isinstance(path_to_directory, str):
+        raise TypeError("Path of data directory must be a string")
+
+    if path_to_directory[-1] != '/':
+        path_to_directory += "/"
+
+    files = [path_to_directory + i for i in os.listdir(path_to_directory)]
+    with ThreadPoolExecutor() as executor:
+        result = executor.map(read_file(), files[:2])
+
+    return result
+
+
+def check_database(database: str):
+
+    tot = 0
+    fsize = pathlib.Path(database).stat().st_size
+    data_check = []
+    print(f"processing {database}")
+    with open(database, "r+b") as fp:
+        with tqdm(total=fsize, desc=database) as pbar:
+            mm = mmap.mmap(fp.fileno(), 0)
+            for ind, line in enumerate(iter(mm.readline, b"")):
+                term = line.decode("utf-8").rstrip("\n").split("\t")
+
+                if len(term) != 2:
+                    print(f"Error -> {database} -> line {ind} in value: {term}")
+                    # raise ValueError("Invalid number of elements")
+                elif not term[0].isalnum():
+                    print(f"Error -> {database} -> line {ind} in value: {term[0]}")
+                    # raise ValueError("Invalid data label")
+                elif term[1] not in punctuation_dict:
+                    print(f"Error -> {database} -> line {ind} in label: {term[0]}")
+                    # raise ValueError("Invalid data label")
+                else:
+                    data_check = line.decode("utf-8").rstrip("\n")
+                # update the progress bar
+                tot += len(line)
+                pbar.update(tot - pbar.n)
+            mm.close()
+
+    return data_check
 
 
 def seq_transformation(raw_data, removelist=',.? '):
@@ -300,7 +400,7 @@ class Dataset(torch.utils.data.Dataset):
         """
         with open(files, 'r', encoding='utf-8') as f:
             self.raw_data = f.readlines()
-        chunk_size = sequence_len * batch_size
+        chunk_size = sequence_len  # * batch_size
         chunks = [self.raw_data[i:i + chunk_size] for i in range(0, len(self.raw_data), chunk_size)]
         self.tensor_weight = calculate_distribution(chunks)
         self.tokenizer = data_tokenizer
@@ -408,3 +508,14 @@ class Dataset(torch.utils.data.Dataset):
         y_mask = torch.tensor(y_mask)
 
         return x_, y, attn_mask, y_mask
+
+
+# path = "/home/jmramirez/Documentos/data/"
+# path = [path+i for i in os.listdir(path)]
+# check = [check_database(i) for i in path]
+#
+# for i in enumerate(path):
+#     with open(path, "w") as file:
+#         file.writelines(check)
+#
+# print("Done!")
